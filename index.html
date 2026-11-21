@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liar's Dice Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4efe6;
+    --felt: #1f4d3a;
+    --felt-2: #173b2c;
+    --card: #fffdf8;
+    --ink: #1b1a17;
+    --ink-2: #57534b;
+    --ink-3: #8a857b;
+    --line: #e2dbcd;
+    --accent: #b8432f;
+    --accent-ink: #fff;
+    --gold: #d9a441;
+    --series-1: #2a78d6;
+    --good: #1a7f4b;
+    --bad: #b8432f;
+    --radius: 14px;
+    --shadow: 0 1px 0 rgba(0,0,0,.04), 0 6px 20px rgba(40,30,10,.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151513;
+      --felt: #17392b;
+      --felt-2: #102a1f;
+      --card: #1f1f1c;
+      --ink: #f0efec;
+      --ink-2: #c3c2b7;
+      --ink-3: #8f8d84;
+      --line: #34332f;
+      --accent: #d9603f;
+      --series-1: #3987e5;
+      --good: #3fb37a;
+      --bad: #e0694a;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  header {
+    background: radial-gradient(ellipse at 20% 0%, #2a6a50 0%, var(--felt) 45%, var(--felt-2) 100%);
+    color: #f6f1e4;
+    padding: 28px 32px 0;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .brand h1 {
+    font-family: Fraunces, Georgia, serif;
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 42px);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .brand .tag { color: #cfe3d6; font-size: 15px; max-width: 560px; }
+  .brand .byline { color: #cfe3d6; font-size: 13px; font-style: italic; margin-top: 2px; letter-spacing: .01em; }
+  .status {
+    margin-left: auto;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+  .status.ready .dot { background: #5fd394; }
+  .status.error .dot { background: #ff7a5c; }
+  nav { display: flex; gap: 4px; margin-top: 22px; }
+  nav button {
+    font: inherit; font-weight: 600; font-size: 15px;
+    background: transparent; color: #cfe3d6; border: 0;
+    padding: 12px 18px; border-radius: 12px 12px 0 0; cursor: pointer;
+  }
+  nav button[aria-selected="true"] { background: var(--bg); color: var(--ink); }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 24px 60px; }
+  .tab { display: none; }
+  .tab.active { display: block; }
+  .grid { display: grid; grid-template-columns: minmax(340px, 430px) 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 18px 20px;
+  }
+  .card + .card { margin-top: 16px; }
+  .grid > .card + .card, .strat-grid > .card + .card { margin-top: 0; }
+  h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 0 0 6px; }
+  .muted { color: var(--ink-2); }
+  .small { font-size: 13px; }
+  label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+  input[type=text], input[type=number], select {
+    font: inherit; font-size: 15px; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
+    padding: 7px 10px; width: 100%;
+  }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 15px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 9px 16px; border-radius: 10px; cursor: pointer;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--ink-3); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.07); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); padding: 6px 8px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row > .grow { flex: 1; min-width: 120px; }
+
+  /* players */
+  .player {
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px;
+    background: color-mix(in srgb, var(--card) 80%, var(--bg));
+  }
+  .player .top { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; align-items: center; }
+  .param { margin-top: 10px; }
+  .param .lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); }
+  .param .lbl b { font-family: "JetBrains Mono", monospace; color: var(--ink); font-weight: 500; }
+  .hist-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--felt); background: #d7eadf;
+    padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 2px;
+  }
+  @media (prefers-color-scheme: dark) { .hist-badge { background: #234a37; color: #bfe6cf; } }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); font-weight: 500; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
+  /* progress */
+  .progress { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; margin-top: 12px; display: none; }
+  .progress.on { display: block; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+
+  /* results */
+  .empty { text-align: center; padding: 50px 20px; color: var(--ink-3); }
+  .empty .big { font-size: 44px; }
+  .chart { margin: 6px 0 18px; }
+  .bar-row { display: grid; grid-template-columns: 170px 1fr; gap: 12px; align-items: center; margin: 6px 0; }
+  .bar-row .who { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row .who span { display: block; font-weight: 400; font-size: 12px; color: var(--ink-2); }
+  .bar-track { position: relative; height: 26px; }
+  .bar {
+    height: 100%; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px;
+    transition: width .4s ease; cursor: default;
+  }
+  .bar-val {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--ink); padding-left: 8px;
+  }
+  .gridline { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--line); }
+  .tooltip {
+    position: fixed; pointer-events: none; background: var(--ink); color: var(--card);
+    font-size: 13px; padding: 8px 10px; border-radius: 8px; z-index: 50; display: none; max-width: 260px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th { font-size: 12px; color: var(--ink-2); font-weight: 600; vertical-align: bottom; }
+  td.num { font-family: "JetBrains Mono", monospace; font-size: 13px; }
+  .note { font-size: 13px; color: var(--ink-2); margin-top: 12px; }
+  .note dt { font-weight: 600; color: var(--ink); display: inline; }
+  .note dd { display: inline; margin: 0; }
+  .note dd::after { content: ""; display: block; margin-bottom: 4px; }
+
+  /* watch */
+  .table-felt {
+    background: radial-gradient(ellipse at 50% 30%, #2b6b51, var(--felt) 60%, var(--felt-2));
+    border-radius: 18px; padding: 20px; color: #f6f1e4;
+  }
+  .seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  .seat {
+    background: rgba(0,0,0,.18); border: 2px solid transparent; border-radius: 12px; padding: 10px 12px;
+    transition: border-color .2s, background .2s;
+  }
+  .seat.turn { border-color: var(--gold); background: rgba(217,164,65,.15); }
+  .seat.out { opacity: .35; }
+  .seat.lost { border-color: #ff7a5c; }
+  .seat .nm { font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
+  .seat .st { font-size: 12px; color: #cfe3d6; margin-bottom: 8px; }
+  .seat .said { font-family: "JetBrains Mono", monospace; font-size: 14px; min-height: 20px; margin-top: 6px; color: #fff3d6; }
+  .dice { display: flex; gap: 5px; flex-wrap: wrap; min-height: 30px; }
+  .die {
+    width: 30px; height: 30px; background: #fbf8f0; border-radius: 6px;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    padding: 4px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.18);
+  }
+  .die i { width: 5px; height: 5px; border-radius: 50%; background: #1b1a17; place-self: center; }
+  .die.hidden { background: #3b7a5f; box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); display: flex; align-items: center; justify-content: center; color: #cfe3d6; font-weight: 700; }
+  .die.match { background: #ffe08a; outline: 2px solid var(--gold); }
+  .die.wild { background: #ffefbf; outline: 2px dashed var(--gold); }
+  .die.dim { opacity: .45; }
+  .bigbid {
+    text-align: center; margin: 18px 0 6px; font-family: Fraunces, Georgia, serif; font-size: 22px;
+  }
+  .bigbid .q { font-size: 44px; font-weight: 800; color: #fff3d6; }
+  .verdict { text-align: center; font-size: 17px; margin-top: 6px; min-height: 26px; }
+  .verdict b { color: #ffd27a; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  .log { max-height: 520px; overflow: auto; font-size: 14px; }
+  .log .rnd { padding: 8px 6px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 6px; }
+  .log .rnd:hover { background: color-mix(in srgb, var(--bg) 60%, transparent); }
+  .log .rnd.cur { background: color-mix(in srgb, var(--gold) 18%, transparent); }
+  .log .bids { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--ink-2); }
+  .pill { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; }
+  .pill.t { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+  .pill.f { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+
+  /* strategies */
+  .strat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .strat p { margin: 6px 0 0; color: var(--ink-2); font-size: 14px; }
+  .strat ul { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink-2); }
+  .prompts li { margin-bottom: 8px; }
+  .rules-box ol { padding-left: 20px; margin: 6px 0 0; }
+  .rules-box li { margin-bottom: 6px; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 13px; background: var(--bg); padding: 1px 5px; border-radius: 5px; }
+  .err { color: var(--bad); font-size: 14px; margin-top: 10px; white-space: pre-wrap; }
+
+  /* assignment */
+  .assign { max-width: 920px; margin: 0 auto; }
+  .assign .card + .card { margin-top: 16px; }
+  .hero { border-left: 5px solid var(--accent); }
+  .hero p { margin: 0 0 10px; }
+  .steps { margin: 6px 0 10px; padding-left: 22px; }
+  .steps li { margin-bottom: 4px; }
+  .howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+  .howto p { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; }
+  .exps li, .check-list li { margin-bottom: 10px; }
+  .exps, .check-list { padding-left: 22px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .row2 { grid-template-columns: 1fr !important; } }
+  ul.can, ul.cant, ul.tips { padding-left: 0; list-style: none; margin: 6px 0 0; }
+  ul.can li, ul.cant li, ul.tips li { padding-left: 24px; position: relative; margin-bottom: 7px; font-size: 15px; }
+  ul.can li::before { content: "✓"; position: absolute; left: 2px; color: var(--good); font-weight: 700; }
+  ul.cant li::before { content: "✕"; position: absolute; left: 2px; color: var(--bad); font-weight: 700; }
+  ul.tips li::before { content: "→"; position: absolute; left: 2px; color: var(--accent); font-weight: 700; }
+  details.example { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; margin-top: 10px; background: color-mix(in srgb, var(--card) 80%, var(--bg)); }
+  details.example summary { cursor: pointer; font-weight: 700; }
+  details.example ol { margin: 10px 0 4px; padding-left: 22px; }
+  details.example li { margin-bottom: 7px; font-size: 15px; }
+  .aform fieldset { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px 4px; margin: 14px 0 0; }
+  .aform legend { font-weight: 700; padding: 0 6px; font-size: 14px; }
+  .aform label { display: block; margin-bottom: 10px; }
+  .aform textarea, .aform input[type=text] { display: block; width: 100%; margin-top: 4px; font: inherit; font-size: 15px; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 7px 10px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fallback { width: 100%; margin-top: 10px; font-family: "JetBrains Mono", monospace; font-size: 12px; }
+
+  .stages { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+  .stage { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: color-mix(in srgb, var(--card) 80%, var(--bg)); }
+  .stage p { margin: 4px 0 0; font-size: 14px; color: var(--ink-2); }
+  .stage-n { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); }
+  .stages .arrow { align-self: center; font-size: 24px; color: var(--ink-3); }
+  @media (max-width: 720px) { .stages { grid-template-columns: 1fr; } .stages .arrow { transform: rotate(90deg); justify-self: center; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="title"><h1>🎲 Liar's Dice Lab</h1><div class="byline">A collaboration between Claude and Cross</div></div>
+    <div class="tag">Put bots with different strategies at the table, run thousands of games, and see which way of thinking wins.</div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Loading Python…</span></div>
+  </div>
+  <nav role="tablist">
+    <button role="tab" data-tab="tournament" aria-selected="true">Tournament</button>
+    <button role="tab" data-tab="watch" aria-selected="false">Watch a game</button>
+    <button role="tab" data-tab="strategies" aria-selected="false">Strategies &amp; rules</button>
+    <button role="tab" data-tab="assignment" aria-selected="false">Assignment</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ======================= TOURNAMENT ======================= -->
+  <section class="tab active" id="tab-tournament">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>Players at the table</h2>
+          <div id="players"></div>
+          <div class="row">
+            <button class="btn" id="addPlayer">+ Add player</button>
+            <span class="muted small" id="playerCount"></span>
+          </div>
+          <div class="row" id="studentAdd" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <h2>Rules</h2>
+          <div class="rules">
+            <div>
+              <label for="dice">Dice per player</label>
+              <select id="dice"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option><option>6</option></select>
+            </div>
+            <div style="align-self:end">
+              <label class="check"><input type="checkbox" id="wild" checked> 1s are wild</label>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Run</h2>
+          <div class="rules">
+            <div>
+              <label for="ngames">Number of games</label>
+              <select id="ngames"><option>100</option><option selected>500</option><option>1000</option><option>2000</option><option>5000</option></select>
+            </div>
+            <div>
+              <label for="seed">Random seed</label>
+              <div class="row" style="flex-wrap:nowrap">
+                <input type="number" id="seed" value="42">
+                <button class="btn ghost" id="reseed" title="New random seed">🎲</button>
+              </div>
+            </div>
+          </div>
+          <p class="muted small" style="margin:10px 0 12px">The first load downloads about 13 MB of Python, so give it a few seconds. Same seed + same players = same results, so the class can reproduce a run. Seats are shuffled every game.</p>
+          <div class="row">
+            <button class="btn primary" id="runBtn" disabled>Run tournament</button>
+            <button class="btn" id="stopBtn" style="display:none">Stop</button>
+            <button class="btn" id="watchBtn" disabled>Watch one game →</button>
+          </div>
+          <div class="progress" id="progress"><div></div></div>
+          <div class="err" id="err"></div>
+        </div>
+      </div>
+
+      <div class="card" id="results">
+        <div class="empty" id="resultsEmpty">
+          <div class="big">🏆</div>
+          <p>Pick your players and press <b>Run tournament</b>.</p>
+        </div>
+        <div id="resultsBody" style="display:none">
+          <h2 id="resultsTitle">Win rate</h2>
+          <div class="muted small" id="resultsSub"></div>
+          <div class="chart" id="chart"></div>
+          <table id="resultsTable"></table>
+          <dl class="note">
+            <dt>Avg place</dt> <dd>— 1 = won; higher means knocked out earlier.</dd>
+            <dt>Calls right</dt> <dd>— of the times this player called “liar”, how often the bid really was false.</dd>
+            <dt>Caught lying</dt> <dd>— of this player's bids that got challenged, how often they were false.</dd>
+            <dt>Bids per call</dt> <dd>— how many bids this player makes for each time they call liar (higher = more willing to keep raising).</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= WATCH ======================= -->
+  <section class="tab" id="tab-watch">
+    <div class="grid" style="grid-template-columns: 1fr minmax(280px, 340px);">
+      <div>
+        <div class="table-felt">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px">
+            <div style="font-family:Fraunces,serif; font-size:20px" id="roundTitle">No game yet</div>
+            <label class="check" style="color:#f6f1e4"><input type="checkbox" id="showDice" checked> Show everyone's dice</label>
+          </div>
+          <div class="seats" id="seats"></div>
+          <div class="bigbid" id="bigbid"></div>
+          <div class="verdict" id="verdict"></div>
+        </div>
+        <div class="controls">
+          <button class="btn" id="prevRound" title="Previous round">⏮</button>
+          <button class="btn" id="prevStep" title="Previous step">◀</button>
+          <button class="btn primary" id="nextStep" title="Next step">Next ▶</button>
+          <button class="btn" id="nextRound" title="Next round">⏭</button>
+          <button class="btn" id="autoplay">Auto-play</button>
+          <span class="grow"></span>
+          <button class="btn" id="newGame" disabled>New game</button>
+        </div>
+        <p class="muted small">Uses the players and rules from the Tournament tab. Each game uses a new seed. Untick “Show everyone's dice” to see only what the players see, then reveal when someone calls liar.</p>
+      </div>
+      <div class="card">
+        <h2>Game history</h2>
+        <div class="muted small" id="gameSummary" style="margin-bottom:8px"></div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= STRATEGIES ======================= -->
+  <section class="tab" id="tab-strategies">
+    <div class="grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="card rules-box">
+        <h2>How a round works</h2>
+        <ol>
+          <li>Everyone rolls their dice and keeps them hidden.</li>
+          <li>The first player makes a <b>bid</b>: a claim like “at least <b>four 5s</b>” across <i>all</i> the dice on the table.</li>
+          <li>Going around the table, each player either <b>raises</b> (more dice, or the same number of dice with a higher face) or calls <b>“liar!”</b> on the last bid.</li>
+          <li>On a call, everyone reveals. If there really are that many, the caller loses a die; if not, the bidder does.</li>
+          <li>With <b>1s wild</b>, 1s count as every face (and you can't bid on 1s).</li>
+          <li>The loser starts the next round. Lose all your dice and you're out. Last player standing wins.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>Want to build your own bot?</h2>
+        <p class="muted" style="margin-top:0">The <a href="#assignment" class="tablink" data-goto="assignment">Assignment</a> tab explains how to explore the app, what a bot can and can't know, and exactly what to include so your strategy can be turned into a bot that plays against everyone else's.</p>
+      </div>
+    </div>
+    <h2 style="margin-top:24px">Computer strategies</h2>
+    <div class="strat-grid" id="stratList"></div>
+    <h2 style="margin-top:24px">Student strategies</h2>
+    <div class="strat-grid" id="studentList"></div>
+  </section>
+
+  <!-- ======================= ASSIGNMENT ======================= -->
+  <section class="tab" id="tab-assignment">
+    <div class="assign">
+      <div class="card hero">
+        <h2>Assignment: design a Liar's Dice bot</h2>
+        <p>Your goal is to invent a strategy for Liar's Dice and write it down clearly enough that it can be turned into a bot. Your bot will then play thousands of games against the computer strategies and your classmates' bots. Your strategy stays secret: classmates will see your bot's results, but not how it works.</p>
+        <ol class="steps">
+          <li><b>Learn the app</b> (5 minutes)</li>
+          <li><b>Try five experiments</b> to see what works (nothing to hand in)</li>
+          <li><b>Design your strategy</b> using the checklist</li>
+          <li><b>Fill in the form</b> at the bottom and send it to your teacher</li>
+        </ol>
+        <p>Your bot will then compete in the <a href="#tournament-info" class="jump">class tournament</a>, described below.</p>
+        <p class="muted small">If you haven't played Liar's Dice before, read <a href="#strategies" class="tablink" data-goto="strategies">How a round works</a> first.</p>
+      </div>
+
+
+      <div class="card" id="tournament-info">
+        <h2>The class tournament: what you're preparing for</h2>
+        <p style="margin-top:0">Every bot in the class will compete in a two-stage tournament, played with the standard rules (5 dice each, 1s wild).</p>
+        <div class="stages">
+          <div class="stage">
+            <div class="stage-n">Stage 1</div>
+            <h3>Qualifying rounds</h3>
+            <p>Your bot plays a long series of games. Each game is at a table of <b>6 bots chosen at random</b> from the class, so you'll face many different combinations of opponents. Bots are ranked by how often they win.</p>
+          </div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div class="stage">
+            <div class="stage-n">Stage 2</div>
+            <h3>The final</h3>
+            <p>The <b>6 best bots</b> from qualifying play each other at one table, <b>hundreds of times</b>. The bot that wins the most games is the class champion.</p>
+          </div>
+        </div>
+        <h3 style="margin-top:16px">What this means for your strategy</h3>
+        <ul class="tips">
+          <li><b>Most of your games start with 6 players.</b> Test your ideas at a 6-player table, not just one-on-one.</li>
+          <li><b>Every game ends one-on-one.</b> If your bot survives, it will play the endgame against a single opponent with only a few dice left, so think about whether your strategy should change then.</li>
+          <li><b>Winning is what counts.</b> Surviving longest without winning doesn't earn points, so playing it safe forever won't be enough.</li>
+          <li><b>You'll meet the same opponents many times.</b> A bot that learns how each opponent plays from past rounds can take advantage of it.</li>
+          <li><b>Luck evens out.</b> With this many games, a strategy that's even a little better will usually rise to the top.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Part 1 · How to use the app</h2>
+        <div class="howto">
+          <div><h3>🏆 Tournament</h3><p>Choose up to 8 players and a strategy for each. Sliders change how a strategy behaves (for example, how unlikely a bid must be before it calls liar). Pick the number of games and press <b>Run tournament</b>. The chart shows each player's win rate; the dashed line is what everyone would get if all players were equally good.</p></div>
+          <div><h3>🎲 Watch a game</h3><p>Step through one game bid by bid with <b>Next ▶</b>, or press <b>Auto-play</b>. Untick <b>Show everyone's dice</b> to see only what the players see; the dice are revealed when someone calls liar.</p></div>
+          <div><h3>📖 Strategies &amp; rules</h3><p>The rules, and a description of each computer strategy. Classmates' strategies are 🔒 locked: you can play against them but not see how they work.</p></div>
+          <div><h3>🔁 Random seed</h3><p>The same seed with the same players always gives the same results, so you can repeat or share a run. Change it (🎲) to get a fresh set of games.</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Part 2 · Five experiments</h2>
+        <p class="muted" style="margin-top:0">You don't need to hand anything in for this part. These experiments are here to help you discover what works before you design your own strategy, so take notes if that helps you.</p>
+        <ol class="exps">
+          <li><b>Read the table.</b> Go to <i>Watch a game</i>, untick <i>Show everyone's dice</i>, and step through a few rounds. Before each call, guess whether the bid is true. How often were you right? What made a bid look suspicious?</li>
+          <li><b>Find the best threshold.</b> Set up just two players: <i>Probabilistic</i> vs <i>Own Dice Only</i>. Run 500 games. Then move Probabilistic's slider (when it calls liar) to 0.2, 0.4 and 0.6, running 500 games each time. Which setting wins most, and why might calling too often or too rarely both be bad?</li>
+          <li><b>Does table size matter?</b> Run <i>Bluffer</i> against one <i>Probabilistic</i> player, then against five Probabilistic players. Compare Bluffer's win rate with the dashed line each time. Does bluffing work better at a big table or a small one?</li>
+          <li><b>Luck vs skill.</b> Pick any two strategies. Run 100 games three times with different seeds, then 2000 games. How much do the 100-game results jump around compared with 2000? How many games would you want before deciding one strategy is better?</li>
+          <li><b>Scout a classmate.</b> Add one or two 🔒 student bots and watch a few of their games. What do you think they do? What do they seem to be good or bad at?</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>Part 3 · Design your strategy</h2>
+        <div class="two">
+          <div>
+            <h3>What your bot can know</h3>
+            <ul class="can">
+              <li>Its own dice.</li>
+              <li>How many dice each player has, and how many are on the table in total.</li>
+              <li>Every bid made so far this round, in order, and who made it.</li>
+              <li>Every past round in this game, in full: everyone's dice (they're revealed at each call), every bid, who called and who lost.</li>
+              <li>Anything it chooses to remember across rounds and games (for example, "Pat bluffs a lot").</li>
+              <li>It can use chance, for example "bluff 1 time in 4".</li>
+            </ul>
+          </div>
+          <div>
+            <h3>What it can't know</h3>
+            <ul class="cant">
+              <li>Anyone else's dice in the current round.</li>
+              <li>Which strategy each opponent is using (but it can learn from how they play).</li>
+            </ul>
+            <h3 style="margin-top:14px">What it can do on its turn</h3>
+            <ul class="can">
+              <li><b>Raise:</b> more dice (any value), or the same number of dice with a higher value.</li>
+              <li><b>Call liar</b> on the last bid (not on the opening bid of a round).</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 style="margin-top:18px">Checklist: a complete strategy answers all of these</h3>
+        <p class="muted small" style="margin-top:0">Your bot will face every situation, so your strategy must say exactly what to do in each one. If it doesn't, someone else has to guess what you meant.</p>
+        <ol class="check-list">
+          <li><b>Opening bid.</b> What do you bid when you go first in a round?</li>
+          <li><b>When to call liar.</b> A precise rule with numbers. Not "if it seems too high", but "if the bid is more than 1 above the number I expect", or "if the chance it's true is below 30%".</li>
+          <li><b>How to raise.</b> Which value and how many dice? Do you stay on the same value or switch?</li>
+          <li><b>Ties.</b> If two values are equally good (for example, you hold two 3s and two 5s), which one do you pick?</li>
+          <li><b>When your preferred raise isn't allowed.</b> For example, the bid is already higher than you'd like to go. What then?</li>
+          <li><b>Does anything change</b> with the number of players left, or the number of dice left (for example, when it's just you and one other player)?</li>
+          <li><i>Optional:</i> <b>Do you use other players' bids?</b> If someone bids 5s, do you assume they have some 5s?</li>
+          <li><i>Optional:</i> <b>Do you learn from past rounds?</b> What do you track, and how does it change your play?</li>
+          <li><i>Optional:</i> <b>Do you bluff?</b> When, how often, and with what bid?</li>
+        </ol>
+
+        <h3 style="margin-top:18px">Tips for writing it clearly</h3>
+        <ul class="tips">
+          <li><b>Say "at least".</b> A bid of "four 5s" means <i>at least</i> four. If you use a probability, say whether you mean exactly or at least that many.</li>
+          <li><b>Use "bid" and "call liar" for different things.</b> "Call" on its own can be confusing.</li>
+          <li><b>Remember wild 1s.</b> With 1s wild, a 1 counts as every value. Say whether your counts include them (they usually should).</li>
+          <li><b>Give numbers, not feelings.</b> "Bluff about 1 time in 5", not "bluff sometimes".</li>
+          <li><b>Expected count is a useful tool.</b> Each die you can't see shows a given value 1 time in 3 when 1s are wild (1 in 6 when they aren't). So with 12 hidden dice, expect about 4 of any value, plus whatever you hold.</li>
+          <li><b>Read it back as a robot would.</b> Pick a few situations and follow your rules word by word. Do they always tell you exactly one thing to do?</li>
+        </ul>
+
+        <h3 style="margin-top:18px">Two complete examples</h3>
+        <p class="muted small" style="margin-top:0">These are made up for illustration. Yours can be simpler or more complex, as long as it's complete.</p>
+        <details class="example" open>
+          <summary>Example 1: "The Counter" (simple, uses only its own dice)</summary>
+          <ol>
+            <li><b>Opening bid:</b> I bid the number of dice I hold of my most common value (counting wild 1s). Ties: the higher value. Example: holding 2, 3, 3, 1, 6, I hold three 3s (two 3s plus the wild 1), so I bid three 3s.</li>
+            <li><b>Expected count:</b> for any value, my matching dice plus (number of dice I can't see ÷ 3).</li>
+            <li><b>Call liar</b> if the bid's quantity is more than 1 above the expected count for its value.</li>
+            <li><b>Raise:</b> if I hold at least two dice matching the current bid's value, I bid one more of that value. Otherwise I switch to my most common value (ties: higher value) at the smallest amount the rules allow.</li>
+            <li><b>If that raise would need more dice than are on the table,</b> I call liar instead.</li>
+            <li><b>Number of players / dice left:</b> no change.</li>
+            <li><b>Other players' bids, history, bluffing:</b> not used.</li>
+          </ol>
+        </details>
+        <details class="example">
+          <summary>Example 2: "The Detective" (reads bids, learns, bluffs)</summary>
+          <ol>
+            <li><b>Memory:</b> after every round (when dice are revealed), for each bid an opponent made, I note whether they held at least two dice of that value (counting 1s). For each opponent I keep their "honest score": the share of their bids where that was true. Everyone starts at 50%.</li>
+            <li><b>Reading bids:</b> when judging a bid on some value, I count each opponent with an honest score of 60% or more who has bid that value this round as holding two of it.</li>
+            <li><b>Chance a bid is true:</b> the chance that at least the number of dice still needed show up among the dice I can't see and haven't counted, where each shows the value 1 time in 3.</li>
+            <li><b>Call liar</b> if that chance is below 30%. With only two players left, below 40%.</li>
+            <li><b>Opening bid:</b> one of my most common value (ties: the higher value).</li>
+            <li><b>Raise:</b> the smallest legal bid on whichever value has the highest chance of being true. Ties: fewer dice, then the lower value.</li>
+            <li><b>Bluff:</b> when three or fewer players remain, 1 time in 5 (decided at random) I instead bid the smallest legal amount of a value I hold none of, as long as that bid would be at least 50% likely with all dice unknown. If no value qualifies, I raise normally.</li>
+            <li><b>If no raise is possible,</b> I call liar.</li>
+          </ol>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>Part 4 · Your strategy</h2>
+        <p class="muted" style="margin-top:0">Describe your strategy using the checklist above, press <b>Copy my answers</b>, and paste the text into an email or your class page for your teacher. Your answers are saved in this browser while you work, but they are not sent anywhere until you copy and send them.</p>
+        <form id="assignForm" class="aform" autocomplete="off">
+          <div class="row2">
+            <label>Your name<input type="text" name="name" maxlength="60"></label>
+            <label>Name for your bot<input type="text" name="bot" maxlength="40"></label>
+          </div>
+          <fieldset><legend>Your strategy</legend>
+            <label>Opening bid<textarea name="s_open" rows="2"></textarea></label>
+            <label>When to call liar<textarea name="s_call" rows="2"></textarea></label>
+            <label>How to raise<textarea name="s_raise" rows="2"></textarea></label>
+            <label>Ties<textarea name="s_ties" rows="1"></textarea></label>
+            <label>When your preferred raise isn't allowed<textarea name="s_stuck" rows="1"></textarea></label>
+            <label>Changes with players or dice left<textarea name="s_change" rows="1"></textarea></label>
+            <label>Using other players' bids (optional)<textarea name="s_bids" rows="1"></textarea></label>
+            <label>Learning from past rounds (optional)<textarea name="s_hist" rows="1"></textarea></label>
+            <label>Bluffing (optional)<textarea name="s_bluff" rows="1"></textarea></label>
+            <label>Anything else<textarea name="s_other" rows="2"></textarea></label>
+          </fieldset>
+          <div class="row" style="margin-top:12px">
+            <button type="button" class="btn primary" id="copyAnswers">Copy my answers</button>
+            <button type="button" class="btn ghost" id="clearAnswers">Clear form</button>
+            <span class="muted small" id="copyMsg" aria-live="polite"></span>
+          </div>
+          <textarea id="copyFallback" class="fallback" rows="8" readonly style="display:none"></textarea>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="tooltip" id="tooltip"></div>
+
+<script id="pysrc" type="application/json">{"liars_dice/__init__.py": "from .core import (\n    Action, Bid, BidEvent, Challenge, GameConfig, GameRecord, RoundRecord, RoundResult,\n)\nfrom .view import PlayerView\nfrom .players import (\n    Player, RandomPlayer, OwnDiceOnlyPlayer, BluffingPlayer, ProbabilisticPlayer, HandReader,\n)\nfrom .game import Game, IllegalMove\nfrom .tournament import run_tournament, TournamentResult\nfrom .registry import STRATEGIES, make_player\nfrom .students import BeckettM, BenG, IanW, JakeR, JonahR, LucyG, ShayG\nfrom .cross import CrossPlayer\n", "liars_dice/core.py": "\"\"\"\nCore data types for Liar's Dice: config, bids, challenges, and the history records.\n\nEverything here is immutable (frozen dataclasses / tuples) so a player can be handed\nhistory objects directly without being able to tamper with the game.\n\"\"\"\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass, field, asdict\nfrom typing import Optional, Union\n\n\n# --------------------------------------------------------------------------- #\n# Configuration\n# --------------------------------------------------------------------------- #\n@dataclass(frozen=True)\nclass GameConfig:\n    dice_per_player: int = 5\n    faces: int = 6\n    ones_wild: bool = True          # 1s count toward every other face\n    # When ones are wild, may players bid on 1s directly? (Keeps rules simple if False.)\n    allow_bid_on_ones: bool = False\n    loser_starts_next_round: bool = True\n\n    def biddable_faces(self) -> range:\n        lowest = 2 if (self.ones_wild and not self.allow_bid_on_ones) else 1\n        return range(lowest, self.faces + 1)\n\n    def matches(self, die: int, face: int) -> bool:\n        \"\"\"Does a single die count toward a bid on `face`?\"\"\"\n        if die == face:\n            return True\n        return self.ones_wild and die == 1 and face != 1\n\n    def p_match(self, face: int) -> float:\n        \"\"\"Probability one unseen die counts toward `face`.\"\"\"\n        if self.ones_wild and face != 1:\n            return 2 / self.faces\n        return 1 / self.faces\n\n\n# --------------------------------------------------------------------------- #\n# Actions\n# --------------------------------------------------------------------------- #\n@dataclass(frozen=True)\nclass Bid:\n    \"\"\"A claim that at least `quantity` dice across the table show `face`.\"\"\"\n    quantity: int\n    face: int\n\n    def beats(self, other: Optional[\"Bid\"]) -> bool:\n        \"\"\"Standard raise rule: higher quantity (any face), or same quantity and higher face.\"\"\"\n        if other is None:\n            return True\n        return (self.quantity, self.face) > (other.quantity, other.face)\n\n    def __str__(self) -> str:\n        return f\"{self.quantity}x{self.face}\"\n\n\n@dataclass(frozen=True)\nclass Challenge:\n    \"\"\"Call 'liar' on the previous bid.\"\"\"\n    def __str__(self) -> str:\n        return \"LIAR!\"\n\n\nAction = Union[Bid, Challenge]\n\n\n# --------------------------------------------------------------------------- #\n# History records\n# --------------------------------------------------------------------------- #\n@dataclass(frozen=True)\nclass BidEvent:\n    \"\"\"One bid made during a round, in order.\"\"\"\n    turn: int            # 0-based index within the round\n    player: str\n    bid: Bid\n\n\n@dataclass(frozen=True)\nclass RoundResult:\n    challenger: str\n    bidder: str          # whoever made the challenged bid\n    challenged_bid: Bid\n    actual_count: int    # how many dice really matched\n    bid_was_true: bool\n    loser: str\n    eliminated: bool     # did the loser run out of dice?\n\n\n@dataclass(frozen=True)\nclass RoundRecord:\n    \"\"\"\n    Complete record of a finished round. All dice are revealed at the end of a round,\n    so this is public information for every player afterwards.\n    \"\"\"\n    round_number: int\n    seating: tuple[str, ...]                    # active players in turn order, starter first\n    dice_counts: tuple[tuple[str, int], ...]    # (player, number of dice) at round start\n    dice: tuple[tuple[str, tuple[int, ...]], ...]  # (player, their dice) - revealed\n    bids: tuple[BidEvent, ...]\n    result: RoundResult\n\n    # convenience accessors\n    def dice_of(self, player: str) -> tuple[int, ...]:\n        return dict(self.dice)[player]\n\n    def bids_by(self, player: str) -> tuple[BidEvent, ...]:\n        return tuple(b for b in self.bids if b.player == player)\n\n    def to_dict(self) -> dict:\n        return asdict(self)\n\n\n@dataclass\nclass GameRecord:\n    \"\"\"Full history of one game.\"\"\"\n    game_id: int\n    config: GameConfig\n    players: tuple[str, ...]           # initial seating\n    strategies: dict[str, str]         # player name -> strategy description\n    seed: Optional[int]\n    rounds: list[RoundRecord] = field(default_factory=list)\n    winner: Optional[str] = None\n    elimination_order: list[str] = field(default_factory=list)  # first out ... last out\n\n    def to_dict(self) -> dict:\n        return asdict(self)\n", "liars_dice/cross.py": "from __future__ import annotations\nfrom functools import lru_cache\nfrom math import comb, factorial, sqrt\nfrom typing import Optional\nfrom .core import Bid, Challenge, GameConfig\nfrom .players import Player\nfrom .view import PlayerView, binom_tail\n\n@lru_cache(maxsize=None)\ndef hands(n: int, faces: int) -> tuple:\n    out = []\n\n    def rec(i, left, counts):\n        if i == faces - 1:\n            c = counts + (left,)\n            ways = factorial(n)\n            for x in c:\n                ways //= factorial(x)\n            out.append((c, ways / faces ** n))\n            return\n        for k in range(left + 1):\n            rec(i + 1, left - k, counts + (k,))\n    rec(0, n, ())\n    return tuple(out)\n\ndef _matches(c: tuple, face: int, wild: bool) -> int:\n    return c[face - 1] + (c[0] if wild and face != 1 else 0)\nEXCESS = range(-3, 4)\n\ndef bucket(e: int) -> int:\n    return max(-3, min(3, e))\n\ndef min_needed(q: int, f: int, n: int, table_dice: int, faces: int, wild: bool, confidence: float) -> int:\n    p = 2 / faces if wild and f != 1 else 1 / faces\n    m = 0\n    while m <= n and binom_tail(q - m, table_dice - n, p) < confidence:\n        m += 1\n    return m\n\n@lru_cache(maxsize=None)\ndef hand_groups(n: int, faces: int, wild: bool, bid_faces: tuple) -> tuple:\n    groups: dict = {}\n    for c, prior in hands(n, faces):\n        key = tuple((_matches(c, f, wild) for f in bid_faces))\n        g = groups.get(key)\n        if g is None:\n            g = groups[key] = [[0.0] * (n + 1) for _ in range(faces)]\n        for f in range(1, faces + 1):\n            g[f - 1][_matches(c, f, wild)] += prior\n    return tuple(((k, tuple((x for row in v for x in row))) for k, v in groups.items()))\n\n@lru_cache(maxsize=100000)\ndef hand_pmfs(n: int, table_dice: int, faces: int, wild: bool, bids: tuple, confidence: float) -> dict:\n    bid_faces = tuple(sorted({f for _, f, _ in bids}))\n    plan = [(bid_faces.index(f), min_needed(q, f, n, table_dice, faces, wild, confidence), table) for q, f, table in bids]\n    acc = [0.0] * (faces * (n + 1))\n    for key, flat in hand_groups(n, faces, wild, bid_faces):\n        w = 1.0\n        for i, m_min, table in plan:\n            e = key[i] - m_min\n            w *= table[0 if e < -3 else 6 if e > 3 else e + 3]\n        if w:\n            acc = [a + w * x for a, x in zip(acc, flat)]\n    width = n + 1\n    total = sum(acc[:width])\n    return {f: tuple((x / total for x in acc[(f - 1) * width:f * width])) for f in range(1, faces + 1)}\n\n@lru_cache(maxsize=20000)\ndef hand_posterior(n: int, table_dice: int, faces: int, wild: bool, bids: tuple, confidence: float) -> tuple:\n    plan = [(f, min_needed(q, f, n, table_dice, faces, wild, confidence), table) for q, f, table in bids]\n    out, acc = ([], 0.0)\n    for c, prior in hands(n, faces):\n        w = prior\n        for f, m_min, table in plan:\n            e = _matches(c, f, wild) - m_min\n            w *= table[0 if e < -3 else 6 if e > 3 else e + 3]\n        acc += w\n        out.append((c, acc))\n    return tuple(out)\n\n@lru_cache(maxsize=200000)\ndef dist_from_pmfs(pmfs: tuple) -> tuple:\n    dist = [1.0]\n    for pmf in pmfs:\n        new = [0.0] * (len(dist) + len(pmf) - 1)\n        for i, a in enumerate(dist):\n            if a:\n                for j, b in enumerate(pmf):\n                    if b:\n                        new[i + j] += a * b\n        dist = new\n    return tuple(dist)\n\ndef tail_from_pmfs(need: int, pmfs: tuple) -> float:\n    if need <= 0:\n        return 1.0\n    dist = dist_from_pmfs(pmfs)\n    return sum(dist[need:]) if need < len(dist) else 0.0\n\n@lru_cache(maxsize=None)\ndef binom_pmf(n: int, p: float) -> tuple:\n    return tuple((comb(n, k) * p ** k * (1 - p) ** (n - k) for k in range(n + 1)))\n\nclass CrossPlayer(Player):\n    MOVES = ('open', 'raise', 'switch')\n\n    def __init__(self, name, confidence: float=0.5, prior_bluff: float=0.1, prior_bids: float=5.0, threshold: float=0.2, open_confidence: float=0.9, use_solved_endgame: bool=False, bold_confidence: float=0.8, max_call_belief: float=0.5, bluff_rate: float=0.7, bluff_believable: float=0.4, seed=None):\n        super().__init__(name, seed)\n        self.bluff_rate = bluff_rate\n        self.bluff_base = bluff_rate\n        self.bluff_believable = bluff_believable\n        self.lookahead_samples = 40\n        self.lookahead_gate = 0.4\n        self.callstats: dict = {}\n        self.bluff_record: dict = {}\n        self._bluffed_round = False\n        self.bold_confidence = bold_confidence\n        self.max_call_belief = max_call_belief\n        self.use_solved_endgame = use_solved_endgame\n        self.confidence = confidence\n        self.prior_bluff = prior_bluff\n        self.prior_bids = prior_bids\n        self.call_threshold = threshold\n        self.open_confidence = open_confidence\n        self.refit_every = 20\n        self.obs: dict = {}\n        self.models: dict = {}\n        self.config: Optional[GameConfig] = None\n        self.prior_table = tuple((round(1.0 if e >= 0 else prior_bluff, 2) for e in EXCESS))\n\n    def describe(self):\n        return 'Cross'\n    _ENDGAME = None\n\n    @classmethod\n    def endgame_table(cls) -> dict:\n        if cls._ENDGAME is None:\n            from .endgame_11 import DATA\n            t = {}\n            for entry in DATA.split(';'):\n                r, d, h, acts = entry.split('|')\n                hist = tuple((int(x) for x in h.split('.'))) if h else ()\n                t[int(r), int(d), hist] = [('c' if a == 'c' else int(a), float(p)) for a, p in (x.split(':') for x in acts.split(','))]\n            cls._ENDGAME = t\n        return cls._ENDGAME\n\n    def endgame_move(self, view: PlayerView):\n        cfg = view.config\n        if not (cfg.ones_wild and cfg.faces == 6 and (not cfg.allow_bid_on_ones)):\n            return None\n        if len(view.seating) != 2 or any((n != 1 for _, n in view.dice_counts)):\n            return None\n        role = 0 if view.seating[0] == view.me else 1\n        hist = tuple(((ev.bid.quantity - 1) * 5 + (ev.bid.face - 2) for ev in view.current_bids))\n        options = self.endgame_table().get((role, view.my_dice[0], hist))\n        if not options:\n            return None\n        r = self.rng.random()\n        for a, p in options:\n            r -= p\n            if r <= 0:\n                break\n        if a == 'c':\n            return Challenge() if view.current_bids else None\n        bid = Bid(a // 5 + 1, a % 5 + 2)\n        return bid if view.is_legal(bid) else None\n\n    @staticmethod\n    def move_type(bids, i) -> str:\n        if i == 0:\n            return 'open'\n        return 'raise' if bids[i].bid.face == bids[i - 1].bid.face else 'switch'\n\n    def new_game(self, players, config):\n        self.config = config\n\n    def round_finished(self, rec):\n        if len(rec.seating) == 2 and self.name in rec.seating:\n            opp = [p for p in rec.seating if p != self.name][0]\n            cfg0 = self.config or GameConfig()\n            st = self.callstats.setdefault(opp, [[0, 0] for _ in range(10)])\n            od = rec.dice_of(opp)\n            n_me = len(rec.dice_of(self.name))\n            for j, ev in enumerate(rec.bids):\n                if ev.player != self.name:\n                    continue\n                called = j == len(rec.bids) - 1\n                if not called and rec.bids[j + 1].player != opp:\n                    continue\n                om = sum((cfg0.matches(d, ev.bid.face) for d in od))\n                p_opp = binom_tail(ev.bid.quantity - om - 1, n_me - 1, cfg0.p_match(ev.bid.face))\n                b = min(9, int(p_opp * 10))\n                st[b][0] += called\n                st[b][1] += 1\n            r = self.bluff_record.setdefault(opp, [0, 0, 0, 0])\n            lost = rec.result.loser == self.name\n            if self._bluffed_round:\n                r[0] += lost\n                r[1] += 1\n            else:\n                r[2] += lost\n                r[3] += 1\n        self._bluffed_round = False\n        cfg = self.config\n        if cfg is None:\n            return\n        total = sum((n for _, n in rec.dice_counts))\n        for i, ev in enumerate(rec.bids):\n            if ev.player == self.name:\n                continue\n            q, f = (ev.bid.quantity, ev.bid.face)\n            dice = rec.dice_of(ev.player)\n            n = len(dice)\n            p = cfg.p_match(f)\n            m_min = min_needed(q, f, n, total, cfg.faces, cfg.ones_wild, self.confidence)\n            nat = sum((d == f for d in dice))\n            ones = sum((d == 1 for d in dice)) if cfg.ones_wild and f != 1 else 0\n            o = self.obs.setdefault((ev.player, self.move_type(rec.bids, i)), {'seen': [0.0] * 7, 'chance': [0.0] * 7})\n            o['seen'][bucket(nat + ones - m_min) + 3] += 1\n            pmf = binom_pmf(n, p)\n            for m, pr in enumerate(pmf):\n                o['chance'][bucket(m - m_min) + 3] += pr\n        for key, o in self.obs.items():\n            seen = sum(o['seen'])\n            if seen - o.get('fitted_at', 0) >= self.refit_every or (key not in self.models and seen >= 1):\n                self.models[key] = self._fit(o)\n                o['fitted_at'] = seen\n\n    def _fit(self, o) -> tuple:\n        k = self.prior_bids\n        nb = sum(o['seen'])\n        chance_avg = [c / nb for c in o['chance']] if nb else [1 / 7] * 7\n        prior = self.prior_table\n        z = sum((pr * ca for pr, ca in zip(prior, chance_avg))) or 1.0\n        raw = []\n        for j in range(7):\n            seen = o['seen'][j] + k * prior[j] * chance_avg[j] / z\n            chance = o['chance'][j] + k * chance_avg[j]\n            raw.append(seen / chance if chance > 0 else prior[j])\n        top = max(raw) or 1.0\n        return tuple((max(0.01, round(r / top * 20) / 20) for r in raw))\n\n    def model(self, player: str, move: str) -> tuple:\n        return self.models.get((player, move), self.prior_table)\n\n    def threshold(self, n_players: int) -> float:\n        return self.call_threshold\n\n    def _pmfs(self, view: PlayerView) -> dict:\n        cfg = view.config\n        latest: dict = {}\n        bids = view.current_bids\n        for i, ev in enumerate(bids):\n            latest.setdefault(ev.player, {})[ev.bid.face] = (ev.bid.quantity, self.move_type(bids, i))\n        faces = list(cfg.biddable_faces())\n        per_face = {f: [] for f in faces}\n        for o in view.opponents():\n            n = view.dice_count(o)\n            mine = latest.get(o)\n            if mine:\n                spec = tuple(sorted(((q, f, self.model(o, mv)) for f, (q, mv) in mine.items())))\n                pm = hand_pmfs(n, view.total_dice, cfg.faces, cfg.ones_wild, spec, self.confidence)\n                for f in faces:\n                    per_face[f].append(pm[f])\n            else:\n                for f in faces:\n                    per_face[f].append(binom_pmf(n, cfg.p_match(f)))\n        return {f: tuple(sorted(v)) for f, v in per_face.items()}\n\n    def prob(self, view: PlayerView, bid: Bid, pmfs: dict | None=None) -> float:\n        pm = (pmfs or self._pmfs(view))[bid.face]\n        return tail_from_pmfs(bid.quantity - view.my_count(bid.face), pm)\n\n    def opening_bid(self, view: PlayerView) -> Bid:\n        best = None\n        for f in view.config.biddable_faces():\n            q = 0\n            while q < view.total_dice and view.prob_at_least(Bid(q + 1, f)) >= self.open_confidence:\n                q += 1\n            if q and (best is None or (q, f) > (best.quantity, best.face)):\n                best = Bid(q, f)\n        if best is None:\n            best = max(view.min_raises(), key=lambda b: (view.prob_at_least(b), -b.face))\n        return best\n\n    def decide(self, view):\n        a = self._base_decide(view)\n        if len(view.seating) != 2 or not isinstance(a, Bid) or (not view.current_bids) or (self.bluff_rate_for(view.opponents()[0]) < self.lookahead_gate):\n            return a\n        if self._bluffed_round and view.my_count(a.face) == 0:\n            return a\n        opp_hands = self._sample_hands(view)\n        cands = []\n        for b0 in view.min_raises():\n            for extra in (0, 1):\n                b = Bid(b0.quantity + extra, b0.face)\n                if b.quantity <= view.total_dice:\n                    cands.append(b)\n        return max(cands, key=lambda b: (self._win_prob(view, b, opp_hands), -b.quantity, -b.face))\n\n    def _call_prob(self, opp: str, p_opp: float) -> float:\n        prior = 1.0 if p_opp < 0.5 else 0.0\n        st = self.callstats.get(opp)\n        if not st:\n            return prior\n        c, n = st[min(9, int(p_opp * 10))]\n        return (c + 5 * prior) / (n + 5)\n\n    def _sample_hands(self, view: PlayerView) -> list:\n        cfg = view.config\n        opp = view.opponents()[0]\n        latest = {}\n        bids = view.current_bids\n        for i, ev in enumerate(bids):\n            if ev.player == opp:\n                latest[ev.bid.face] = (ev.bid.quantity, self.move_type(bids, i))\n        spec = tuple(sorted(((q, f, self.model(opp, mv)) for f, (q, mv) in latest.items())))\n        post = hand_posterior(view.dice_count(opp), view.total_dice, cfg.faces, cfg.ones_wild, spec, self.confidence)\n        total = post[-1][1]\n        out = []\n        for _ in range(self.lookahead_samples):\n            r = self.rng.random() * total\n            lo, hi = (0, len(post) - 1)\n            while lo < hi:\n                mid = (lo + hi) // 2\n                if post[mid][1] < r:\n                    lo = mid + 1\n                else:\n                    hi = mid\n            out.append(post[lo][0])\n        return out\n\n    def _win_prob(self, view: PlayerView, bid: Bid, opp_hands: list) -> float:\n        cfg = view.config\n        T = view.total_dice\n        n_me = len(view.my_dice)\n        faces = list(cfg.biddable_faces())\n        wild = cfg.ones_wild\n        opp = view.opponents()[0]\n        my_m = {f: view.my_count(f) for f in faces}\n        tot = 0.0\n        for c in opp_hands:\n            om = {f: _matches(c, f, wild) for f in faces}\n            true_now = my_m[bid.face] + om[bid.face] >= bid.quantity\n            p_opp = binom_tail(bid.quantity - om[bid.face] - 1, n_me - 1, cfg.p_match(bid.face))\n            pc = self._call_prob(opp, p_opp)\n            best, bp = (None, -1.0)\n            for f in faces:\n                q = bid.quantity if f > bid.face else bid.quantity + 1\n                if q > T:\n                    continue\n                p = binom_tail(q - om[f], n_me, cfg.p_match(f))\n                if p > bp:\n                    best, bp = (Bid(q, f), p)\n            if best is None:\n                tot += true_now\n                continue\n            raise_true = my_m[best.face] + om[best.face] >= best.quantity\n            cont = not raise_true if view.prob_at_least(best) < 0.5 else 0.5\n            tot += pc * true_now + (1 - pc) * cont\n        return tot / len(opp_hands)\n\n    def _base_decide(self, view):\n        if self.config is None:\n            self.config = view.config\n        if self.use_solved_endgame:\n            move = self.endgame_move(view)\n            if move is not None:\n                return move\n        last = view.last_bid\n        pmfs = self._pmfs(view) if last is not None else None\n        p_last = self.prob(view, last, pmfs) if last is not None else None\n        if len(view.seating) == 2:\n            self.bluff_rate = self.bluff_rate_for(view.opponents()[0])\n        if len(view.seating) == 2 and self.rng.random() < self.bluff_rate:\n            if last is None or p_last >= self.max_call_belief:\n                b = self.bluff_bid(view, view.min_raises(), pmfs)\n                if b is not None:\n                    return b\n        if last is None:\n            return self.opening_bid(view)\n        if p_last < self.threshold(len(view.seating)):\n            return Challenge()\n        options = view.min_raises()\n        if not options:\n            return Challenge()\n        safest = max(options, key=lambda b: (round(self.prob(view, b, pmfs), 9), -b.quantity, -b.face))\n        if p_last < self.max_call_belief and self.prob(view, safest, pmfs) < 1 - p_last:\n            return Challenge()\n        if len(view.seating) > 2:\n            return self.bold_raise(view, options, pmfs) or safest\n        return safest\n\n    def bluff_rate_for(self, opp: str) -> float:\n        r = self.bluff_record.get(opp)\n        if not r or r[1] < 30 or r[3] < 30:\n            return self.bluff_base\n        lb, nb, lh, nh = r\n        p = (lb + lh) / (nb + nh)\n        se = sqrt(max(p * (1 - p) * (1 / nb + 1 / nh), 1e-09))\n        z = (lb / nb - lh / nh) / se\n        if z > 2:\n            return max(0.1, self.bluff_base - 0.15 * (z - 2))\n        if z < -2:\n            return min(1.0, self.bluff_base + 0.15 * (-z - 2))\n        return self.bluff_base\n\n    def bluff_bid(self, view: PlayerView, options, pmfs):\n        cfg = view.config\n        cands = []\n        for b in options:\n            if view.my_count(b.face) > 0:\n                continue\n            if binom_tail(b.quantity, view.total_dice, cfg.p_match(b.face)) >= self.bluff_believable:\n                mine = self.prob(view, b, pmfs) if pmfs is not None else view.prob_at_least(b)\n                cands.append((mine, -b.quantity, -b.face, b))\n        if not cands:\n            return None\n        self._bluffed_round = True\n        return max(cands)[3]\n\n    def bold_raise(self, view: PlayerView, options, pmfs):\n        best = None\n        for b0 in options:\n            f, q = (b0.face, b0.quantity)\n            if self.prob(view, b0, pmfs) < self.bold_confidence:\n                continue\n            while q < view.total_dice and self.prob(view, Bid(q + 1, f), pmfs) >= self.bold_confidence:\n                q += 1\n            if best is None or (q, f) > (best.quantity, best.face):\n                best = Bid(q, f)\n        return best", "liars_dice/endgame_11.py": "\"\"\"Solved strategy for 1-vs-1 with one die each (wild 1s). Generated by endgame/solve.py.\"\"\"\nDATA = \"0|1||0:0.024,1:0.208,2:0.215,3:0.458,4:0.095;0|1|0.1|2:0.332,3:0.449,4:0.075,9:0.144;0|1|0.1.2.3|4:0.476,9:0.524;0|1|0.1.2.3.4.5|c:0.237,8:0.143,9:0.62;0|1|0.1.2.3.4.5.8.9|c:1.0;0|1|0.1.2.3.4.6|c:0.317,7:0.072,8:0.231,9:0.38;0|1|0.1.2.3.4.6.7.8|c:0.399,9:0.601;0|1|0.1.2.3.4.6.7.9|c:1.0;0|1|0.1.2.3.4.6.8.9|c:1.0;0|1|0.1.2.3.4.7|c:0.237,8:0.212,9:0.551;0|1|0.1.2.3.4.7.8.9|c:1.0;0|1|0.1.2.3.4.8|c:0.605,9:0.395;0|1|0.1.2.3.4.9|c:1.0;0|1|0.1.2.4|5:0.033,9:0.967;0|1|0.1.2.4.5.6|c:0.843,9:0.157;0|1|0.1.2.4.5.7|c:0.807,8:0.029,9:0.164;0|1|0.1.2.4.5.7.8.9|c:1.0;0|1|0.1.2.4.5.8|c:0.842,9:0.158;0|1|0.1.2.4.5.9|c:1.0;0|1|0.1.2.5|6:0.021,9:0.979;0|1|0.1.2.5.6.7|c:0.487,8:0.192,9:0.321;0|1|0.1.2.5.6.7.8.9|c:1.0;0|1|0.1.2.5.6.8|c:0.53,9:0.47;0|1|0.1.2.5.6.9|c:1.0;0|1|0.1.2.6|c:0.552,7:0.224,9:0.224;0|1|0.1.2.6.7.8|c:0.727,9:0.273;0|1|0.1.2.6.7.9|c:1.0;0|1|0.1.2.7|c:0.083,8:0.457,9:0.459;0|1|0.1.2.7.8.9|c:1.0;0|1|0.1.2.8|c:0.172,9:0.828;0|1|0.1.2.9|c:1.0;0|1|0.1.3.4|9:1.0;0|1|0.1.3.5|c:0.227,6:0.128,7:0.121,8:0.207,9:0.318;0|1|0.1.3.5.6.7|c:0.798,8:0.05,9:0.152;0|1|0.1.3.5.6.7.8.9|c:1.0;0|1|0.1.3.5.6.8|c:0.755,9:0.245;0|1|0.1.3.5.6.9|c:1.0;0|1|0.1.3.5.7.8|c:0.484,9:0.516;0|1|0.1.3.5.7.9|c:1.0;0|1|0.1.3.5.8.9|c:1.0;0|1|0.1.3.6|c:0.41,8:0.06,9:0.531;0|1|0.1.3.6.8.9|c:1.0;0|1|0.1.3.7|c:0.312,8:0.349,9:0.339;0|1|0.1.3.7.8.9|c:1.0;0|1|0.1.3.8|9:1.0;0|1|0.1.3.9|c:1.0;0|1|0.1.4.5|c:0.328,6:0.054,9:0.619;0|1|0.1.4.5.6.7|c:0.324,8:0.189,9:0.487;0|1|0.1.4.5.6.7.8.9|c:1.0;0|1|0.1.4.5.6.8|c:0.198,9:0.802;0|1|0.1.4.5.6.9|c:1.0;0|1|0.1.4.6|c:1.0;0|1|0.1.4.7|c:1.0;0|1|0.1.4.8|c:1.0;0|1|0.1.4.9|c:1.0;0|1|0.2|3:0.27,4:0.73;0|1|0.2.3.4|9:1.0;0|1|0.2.3.5|c:0.656,6:0.163,7:0.117,8:0.04,9:0.025;0|1|0.2.3.5.6.7|c:0.75,8:0.02,9:0.23;0|1|0.2.3.5.6.7.8.9|c:1.0;0|1|0.2.3.5.6.8|c:0.709,9:0.291;0|1|0.2.3.5.6.9|c:1.0;0|1|0.2.3.5.7.8|c:0.745,9:0.255;0|1|0.2.3.5.7.9|c:1.0;0|1|0.2.3.5.8.9|c:1.0;0|1|0.2.3.6|c:0.958,7:0.042;0|1|0.2.3.6.7.8|c:1.0;0|1|0.2.3.6.7.9|c:1.0;0|1|0.2.3.7|c:0.828,8:0.077,9:0.095;0|1|0.2.3.7.8.9|c:1.0;0|1|0.2.3.8|c:0.097,9:0.903;0|1|0.2.3.9|c:1.0;0|1|0.2.4.5|c:0.037,9:0.963;0|1|0.2.4.6|c:0.379,7:0.14,9:0.481;0|1|0.2.4.6.7.8|c:0.393,9:0.607;0|1|0.2.4.6.7.9|c:1.0;0|1|0.2.4.7|c:1.0;0|1|0.2.4.8|c:1.0;0|1|0.2.4.9|c:1.0;0|1|0.3|4:1.0;0|1|0.3.4.5|c:0.392,8:0.335,9:0.273;0|1|0.3.4.5.8.9|c:1.0;0|1|0.3.4.6|c:1.0;0|1|0.3.4.7|c:1.0;0|1|0.3.4.8|c:0.747,9:0.253;0|1|0.3.4.9|c:1.0;0|1|0.4|9:1.0;0|1|0.5|9:1.0;0|1|0.6|c:0.577,7:0.075,8:0.12,9:0.227;0|1|0.6.7.8|c:0.611,9:0.389;0|1|0.6.7.9|c:1.0;0|1|0.6.8.9|c:1.0;0|1|0.7|c:0.979,9:0.021;0|1|0.8|c:0.906,9:0.094;0|1|0.9|c:1.0;0|1|1.2|3:0.452,4:0.548;0|1|1.2.3.4|9:1.0;0|1|1.2.3.5|c:0.527,6:0.126,7:0.112,8:0.102,9:0.133;0|1|1.2.3.5.6.7|c:0.902,8:0.036,9:0.063;0|1|1.2.3.5.6.7.8.9|c:1.0;0|1|1.2.3.5.6.8|c:0.91,9:0.09;0|1|1.2.3.5.6.9|c:1.0;0|1|1.2.3.5.7.8|c:0.833,9:0.167;0|1|1.2.3.5.7.9|c:1.0;0|1|1.2.3.5.8.9|c:1.0;0|1|1.2.3.6|c:0.133,7:0.385,9:0.482;0|1|1.2.3.6.7.8|c:0.535,9:0.465;0|1|1.2.3.6.7.9|c:1.0;0|1|1.2.3.7|c:0.704,8:0.154,9:0.142;0|1|1.2.3.7.8.9|c:1.0;0|1|1.2.3.8|9:1.0;0|1|1.2.3.9|c:1.0;0|1|1.2.4.5|c:0.239,6:0.141,7:0.113,8:0.142,9:0.365;0|1|1.2.4.5.6.7|8:0.384,9:0.616;0|1|1.2.4.5.6.7.8.9|c:1.0;0|1|1.2.4.5.6.8|9:1.0;0|1|1.2.4.5.6.9|c:1.0;0|1|1.2.4.5.7.8|c:0.393,9:0.607;0|1|1.2.4.5.7.9|c:1.0;0|1|1.2.4.5.8.9|c:1.0;0|1|1.2.4.6|9:1.0;0|1|1.2.4.7|c:1.0;0|1|1.2.4.8|c:1.0;0|1|1.2.4.9|c:1.0;0|1|1.3|4:1.0;0|1|1.3.4.5|c:0.106,9:0.894;0|1|1.3.4.6|9:1.0;0|1|1.3.4.7|c:1.0;0|1|1.3.4.8|c:1.0;0|1|1.3.4.9|c:1.0;0|1|1.4|9:1.0;0|1|1.5|c:0.385,6:0.101,7:0.123,8:0.151,9:0.241;0|1|1.5.6.7|c:0.628,8:0.14,9:0.232;0|1|1.5.6.7.8.9|c:1.0;0|1|1.5.6.8|c:0.855,9:0.145;0|1|1.5.6.9|c:1.0;0|1|1.5.7.8|c:0.897,9:0.103;0|1|1.5.7.9|c:1.0;0|1|1.5.8.9|c:1.0;0|1|1.6|7:0.035,9:0.965;0|1|1.6.7.8|c:0.412,9:0.588;0|1|1.6.7.9|c:1.0;0|1|1.7|c:1.0;0|1|1.8|c:1.0;0|1|1.9|c:1.0;0|1|2.3|4:1.0;0|1|2.3.4.5|9:1.0;0|1|2.3.4.6|c:0.121,8:0.021,9:0.858;0|1|2.3.4.6.8.9|c:1.0;0|1|2.3.4.7|9:1.0;0|1|2.3.4.8|c:0.362,9:0.638;0|1|2.3.4.9|c:1.0;0|1|2.4|9:1.0;0|1|2.5|c:0.427,6:0.164,9:0.408;0|1|2.5.6.7|c:0.743,8:0.078,9:0.179;0|1|2.5.6.7.8.9|c:1.0;0|1|2.5.6.8|c:0.922,9:0.078;0|1|2.5.6.9|c:1.0;0|1|2.6|c:0.312,7:0.227,8:0.21,9:0.252;0|1|2.6.7.8|c:0.951,9:0.049;0|1|2.6.7.9|c:1.0;0|1|2.6.8.9|c:1.0;0|1|2.7|9:1.0;0|1|2.8|c:1.0;0|1|2.9|c:1.0;0|1|3.4|9:1.0;0|1|3.5|c:0.495,6:0.286,8:0.063,9:0.156;0|1|3.5.6.7|c:0.783,8:0.057,9:0.16;0|1|3.5.6.7.8.9|c:1.0;0|1|3.5.6.8|c:1.0;0|1|3.5.6.9|c:1.0;0|1|3.5.8.9|c:1.0;0|1|3.6|c:0.609,7:0.391;0|1|3.6.7.8|c:1.0;0|1|3.6.7.9|c:1.0;0|1|3.7|c:0.902,9:0.098;0|1|3.8|9:1.0;0|1|3.9|c:1.0;0|1|4.5|c:0.106,6:0.024,8:0.105,9:0.765;0|1|4.5.6.7|c:0.271,9:0.729;0|1|4.5.6.8|c:0.074,9:0.926;0|1|4.5.6.9|c:1.0;0|1|4.5.8.9|c:1.0;0|1|4.6|c:0.37,7:0.21,8:0.174,9:0.247;0|1|4.6.7.8|c:0.796,9:0.204;0|1|4.6.7.9|c:1.0;0|1|4.6.8.9|c:1.0;0|1|4.7|c:0.465,8:0.248,9:0.287;0|1|4.7.8.9|c:1.0;0|1|4.8|c:0.56,9:0.44;0|1|4.9|c:1.0;0|2||0:0.061,1:0.169,2:0.272,3:0.433,4:0.066;0|2|0.1|c:0.266,2:0.236,3:0.133,4:0.041,5:0.324;0|2|0.1.2.3|c:0.22,4:0.173,5:0.607;0|2|0.1.2.3.4.5|c:0.974,8:0.026;0|2|0.1.2.3.4.5.8.9|c:1.0;0|2|0.1.2.3.4.6|c:1.0;0|2|0.1.2.3.4.7|c:1.0;0|2|0.1.2.3.4.8|c:1.0;0|2|0.1.2.3.4.9|c:1.0;0|2|0.1.2.3.5.6|c:1.0;0|2|0.1.2.3.5.7|c:1.0;0|2|0.1.2.3.5.8|c:1.0;0|2|0.1.2.3.5.9|c:1.0;0|2|0.1.2.4|c:0.562,5:0.438;0|2|0.1.2.4.5.6|c:1.0;0|2|0.1.2.4.5.7|c:1.0;0|2|0.1.2.4.5.8|c:1.0;0|2|0.1.2.4.5.9|c:1.0;0|2|0.1.2.5|c:0.903,6:0.097;0|2|0.1.2.5.6.7|c:1.0;0|2|0.1.2.5.6.8|c:1.0;0|2|0.1.2.5.6.9|c:1.0;0|2|0.1.2.6|c:1.0;0|2|0.1.2.7|c:1.0;0|2|0.1.2.8|c:1.0;0|2|0.1.2.9|c:1.0;0|2|0.1.3.4|c:0.784,5:0.216;0|2|0.1.3.4.5.6|c:1.0;0|2|0.1.3.4.5.7|c:1.0;0|2|0.1.3.4.5.8|c:1.0;0|2|0.1.3.4.5.9|c:1.0;0|2|0.1.3.5|c:0.29,6:0.233,7:0.157,8:0.32;0|2|0.1.3.5.6.7|c:1.0;0|2|0.1.3.5.6.8|c:1.0;0|2|0.1.3.5.6.9|c:1.0;0|2|0.1.3.5.7.8|c:1.0;0|2|0.1.3.5.7.9|c:1.0;0|2|0.1.3.5.8.9|c:1.0;0|2|0.1.3.6|c:1.0;0|2|0.1.3.7|c:1.0;0|2|0.1.3.8|c:1.0;0|2|0.1.3.9|c:1.0;0|2|0.1.4.5|c:0.956,6:0.044;0|2|0.1.4.5.6.7|c:1.0;0|2|0.1.4.5.6.8|c:1.0;0|2|0.1.4.5.6.9|c:1.0;0|2|0.1.4.6|c:1.0;0|2|0.1.4.7|c:1.0;0|2|0.1.4.8|c:1.0;0|2|0.1.4.9|c:1.0;0|2|0.1.5.6|c:1.0;0|2|0.1.5.7|c:1.0;0|2|0.1.5.8|c:1.0;0|2|0.1.5.9|c:1.0;0|2|0.2|c:0.208,3:0.065,4:0.293,5:0.434;0|2|0.2.3.4|c:0.827,5:0.173;0|2|0.2.3.4.5.6|c:1.0;0|2|0.2.3.4.5.7|c:1.0;0|2|0.2.3.4.5.8|c:1.0;0|2|0.2.3.4.5.9|c:1.0;0|2|0.2.3.5|c:0.279,6:0.347,7:0.27,8:0.104;0|2|0.2.3.5.6.7|c:1.0;0|2|0.2.3.5.6.8|c:1.0;0|2|0.2.3.5.6.9|c:1.0;0|2|0.2.3.5.7.8|c:1.0;0|2|0.2.3.5.7.9|c:1.0;0|2|0.2.3.5.8.9|c:1.0;0|2|0.2.3.6|c:1.0;0|2|0.2.3.7|c:1.0;0|2|0.2.3.8|c:1.0;0|2|0.2.3.9|c:1.0;0|2|0.2.4.5|c:1.0;0|2|0.2.4.6|c:1.0;0|2|0.2.4.7|c:1.0;0|2|0.2.4.8|c:1.0;0|2|0.2.4.9|c:1.0;0|2|0.2.5.6|c:1.0;0|2|0.2.5.7|c:1.0;0|2|0.2.5.8|c:1.0;0|2|0.2.5.9|c:1.0;0|2|0.3|c:0.229,4:0.248,5:0.524;0|2|0.3.4.5|c:1.0;0|2|0.3.4.6|c:1.0;0|2|0.3.4.7|c:1.0;0|2|0.3.4.8|c:1.0;0|2|0.3.4.9|c:1.0;0|2|0.3.5.6|c:1.0;0|2|0.3.5.7|c:1.0;0|2|0.3.5.8|c:1.0;0|2|0.3.5.9|c:1.0;0|2|0.4|c:0.585,5:0.415;0|2|0.4.5.6|c:1.0;0|2|0.4.5.7|c:1.0;0|2|0.4.5.8|c:1.0;0|2|0.4.5.9|c:1.0;0|2|0.5|c:1.0;0|2|0.6|c:1.0;0|2|0.7|c:1.0;0|2|0.8|c:1.0;0|2|0.9|c:1.0;0|2|1.2|3:0.201,4:0.651,5:0.148;0|2|1.2.3.4|c:0.063,5:0.937;0|2|1.2.3.4.5.6|c:1.0;0|2|1.2.3.4.5.7|c:1.0;0|2|1.2.3.4.5.8|c:1.0;0|2|1.2.3.4.5.9|c:1.0;0|2|1.2.3.5|c:0.091,6:0.324,7:0.319,8:0.266;0|2|1.2.3.5.6.7|c:1.0;0|2|1.2.3.5.6.8|c:1.0;0|2|1.2.3.5.6.9|c:1.0;0|2|1.2.3.5.7.8|c:1.0;0|2|1.2.3.5.7.9|c:1.0;0|2|1.2.3.5.8.9|c:1.0;0|2|1.2.3.6|c:1.0;0|2|1.2.3.7|c:1.0;0|2|1.2.3.8|c:1.0;0|2|1.2.3.9|c:1.0;0|2|1.2.4.5|c:1.0;0|2|1.2.4.6|c:1.0;0|2|1.2.4.7|c:1.0;0|2|1.2.4.8|c:1.0;0|2|1.2.4.9|c:1.0;0|2|1.2.5.6|c:1.0;0|2|1.2.5.7|c:1.0;0|2|1.2.5.8|c:1.0;0|2|1.2.5.9|c:1.0;0|2|1.3|4:0.661,5:0.339;0|2|1.3.4.5|c:1.0;0|2|1.3.4.6|c:1.0;0|2|1.3.4.7|c:1.0;0|2|1.3.4.8|c:1.0;0|2|1.3.4.9|c:1.0;0|2|1.3.5.6|c:1.0;0|2|1.3.5.7|c:1.0;0|2|1.3.5.8|c:1.0;0|2|1.3.5.9|c:1.0;0|2|1.4|c:0.659,5:0.341;0|2|1.4.5.6|c:1.0;0|2|1.4.5.7|c:1.0;0|2|1.4.5.8|c:1.0;0|2|1.4.5.9|c:1.0;0|2|1.5|c:1.0;0|2|1.6|c:1.0;0|2|1.7|c:1.0;0|2|1.8|c:1.0;0|2|1.9|c:1.0;0|2|2.3|4:0.277,5:0.723;0|2|2.3.4.5|c:1.0;0|2|2.3.4.6|c:1.0;0|2|2.3.4.7|c:1.0;0|2|2.3.4.8|c:1.0;0|2|2.3.4.9|c:1.0;0|2|2.3.5.6|c:1.0;0|2|2.3.5.7|c:1.0;0|2|2.3.5.8|c:1.0;0|2|2.3.5.9|c:1.0;0|2|2.4|c:0.28,5:0.72;0|2|2.4.5.6|c:1.0;0|2|2.4.5.7|c:1.0;0|2|2.4.5.8|c:1.0;0|2|2.4.5.9|c:1.0;0|2|2.5|c:1.0;0|2|2.6|c:1.0;0|2|2.7|c:1.0;0|2|2.8|c:1.0;0|2|2.9|c:1.0;0|2|3.4|c:0.254,5:0.746;0|2|3.4.5.6|c:1.0;0|2|3.4.5.7|c:1.0;0|2|3.4.5.8|c:1.0;0|2|3.4.5.9|c:1.0;0|2|3.5|c:0.784,6:0.166,8:0.05;0|2|3.5.6.7|c:1.0;0|2|3.5.6.8|c:1.0;0|2|3.5.6.9|c:1.0;0|2|3.5.8.9|c:1.0;0|2|3.6|c:1.0;0|2|3.7|c:1.0;0|2|3.8|c:1.0;0|2|3.9|c:1.0;0|2|4.5|c:1.0;0|2|4.6|c:1.0;0|2|4.7|c:1.0;0|2|4.8|c:1.0;0|2|4.9|c:1.0;0|3||0:0.023,1:0.289,2:0.263,3:0.376,4:0.049;0|3|0.1|2:0.236,3:0.106,6:0.658;0|3|0.1.2.3|c:0.065,4:0.058,6:0.877;0|3|0.1.2.3.4.5|c:1.0;0|3|0.1.2.3.4.6|c:0.576,7:0.235,8:0.189;0|3|0.1.2.3.4.6.7.8|c:1.0;0|3|0.1.2.3.4.6.7.9|c:1.0;0|3|0.1.2.3.4.6.8.9|c:1.0;0|3|0.1.2.3.4.7|c:1.0;0|3|0.1.2.3.4.8|c:1.0;0|3|0.1.2.3.4.9|c:1.0;0|3|0.1.2.3.6.7|c:1.0;0|3|0.1.2.3.6.8|c:1.0;0|3|0.1.2.3.6.9|c:1.0;0|3|0.1.2.4|c:0.186,6:0.814;0|3|0.1.2.4.6.7|c:1.0;0|3|0.1.2.4.6.8|c:1.0;0|3|0.1.2.4.6.9|c:1.0;0|3|0.1.2.5|c:1.0;0|3|0.1.2.6|7:0.9,8:0.1;0|3|0.1.2.6.7.8|c:1.0;0|3|0.1.2.6.7.9|c:1.0;0|3|0.1.2.6.8.9|c:1.0;0|3|0.1.2.7|c:1.0;0|3|0.1.2.8|c:1.0;0|3|0.1.2.9|c:1.0;0|3|0.1.3.4|c:0.076,6:0.924;0|3|0.1.3.4.6.7|c:1.0;0|3|0.1.3.4.6.8|c:1.0;0|3|0.1.3.4.6.9|c:1.0;0|3|0.1.3.5|c:1.0;0|3|0.1.3.6|c:0.022,7:0.065,8:0.913;0|3|0.1.3.6.7.8|c:1.0;0|3|0.1.3.6.7.9|c:1.0;0|3|0.1.3.6.8.9|c:1.0;0|3|0.1.3.7|c:1.0;0|3|0.1.3.8|c:1.0;0|3|0.1.3.9|c:1.0;0|3|0.1.6.7|c:1.0;0|3|0.1.6.8|c:1.0;0|3|0.1.6.9|c:1.0;0|3|0.2|c:0.026,3:0.101,4:0.661,6:0.212;0|3|0.2.3.4|c:0.622,6:0.378;0|3|0.2.3.4.6.7|c:1.0;0|3|0.2.3.4.6.8|c:1.0;0|3|0.2.3.4.6.9|c:1.0;0|3|0.2.3.5|c:1.0;0|3|0.2.3.6|c:0.163,7:0.599,8:0.237;0|3|0.2.3.6.7.8|c:1.0;0|3|0.2.3.6.7.9|c:1.0;0|3|0.2.3.6.8.9|c:1.0;0|3|0.2.3.7|c:1.0;0|3|0.2.3.8|c:1.0;0|3|0.2.3.9|c:1.0;0|3|0.2.4.5|c:1.0;0|3|0.2.4.6|c:1.0;0|3|0.2.4.7|c:1.0;0|3|0.2.4.8|c:1.0;0|3|0.2.4.9|c:1.0;0|3|0.2.6.7|c:1.0;0|3|0.2.6.8|c:1.0;0|3|0.2.6.9|c:1.0;0|3|0.3|4:0.528,6:0.472;0|3|0.3.4.5|c:1.0;0|3|0.3.4.6|c:0.052,7:0.238,8:0.71;0|3|0.3.4.6.7.8|c:1.0;0|3|0.3.4.6.7.9|c:1.0;0|3|0.3.4.6.8.9|c:1.0;0|3|0.3.4.7|c:1.0;0|3|0.3.4.8|c:1.0;0|3|0.3.4.9|c:1.0;0|3|0.3.6.7|c:1.0;0|3|0.3.6.8|c:1.0;0|3|0.3.6.9|c:1.0;0|3|0.4|c:0.685,6:0.315;0|3|0.4.6.7|c:1.0;0|3|0.4.6.8|c:1.0;0|3|0.4.6.9|c:1.0;0|3|0.5|c:1.0;0|3|0.6|c:0.381,7:0.346,8:0.273;0|3|0.6.7.8|c:1.0;0|3|0.6.7.9|c:1.0;0|3|0.6.8.9|c:1.0;0|3|0.7|c:1.0;0|3|0.8|c:1.0;0|3|0.9|c:1.0;0|3|1.2|c:0.216,3:0.226,4:0.425,6:0.133;0|3|1.2.3.4|c:1.0;0|3|1.2.3.5|c:1.0;0|3|1.2.3.6|c:0.512,7:0.467,8:0.021;0|3|1.2.3.6.7.8|c:1.0;0|3|1.2.3.6.7.9|c:1.0;0|3|1.2.3.6.8.9|c:1.0;0|3|1.2.3.7|c:1.0;0|3|1.2.3.8|c:1.0;0|3|1.2.3.9|c:1.0;0|3|1.2.4.5|c:1.0;0|3|1.2.4.6|c:1.0;0|3|1.2.4.7|c:1.0;0|3|1.2.4.8|c:1.0;0|3|1.2.4.9|c:1.0;0|3|1.2.6.7|c:1.0;0|3|1.2.6.8|c:1.0;0|3|1.2.6.9|c:1.0;0|3|1.3|c:0.232,4:0.525,6:0.244;0|3|1.3.4.5|c:1.0;0|3|1.3.4.6|c:1.0;0|3|1.3.4.7|c:1.0;0|3|1.3.4.8|c:1.0;0|3|1.3.4.9|c:1.0;0|3|1.3.6.7|c:1.0;0|3|1.3.6.8|c:1.0;0|3|1.3.6.9|c:1.0;0|3|1.4|c:0.861,6:0.139;0|3|1.4.6.7|c:1.0;0|3|1.4.6.8|c:1.0;0|3|1.4.6.9|c:1.0;0|3|1.5|c:1.0;0|3|1.6|c:1.0;0|3|1.7|c:1.0;0|3|1.8|c:1.0;0|3|1.9|c:1.0;0|3|2.3|4:0.263,6:0.737;0|3|2.3.4.5|c:1.0;0|3|2.3.4.6|c:0.936,7:0.022,8:0.042;0|3|2.3.4.6.7.8|c:1.0;0|3|2.3.4.6.7.9|c:1.0;0|3|2.3.4.6.8.9|c:1.0;0|3|2.3.4.7|c:1.0;0|3|2.3.4.8|c:1.0;0|3|2.3.4.9|c:1.0;0|3|2.3.6.7|c:1.0;0|3|2.3.6.8|c:1.0;0|3|2.3.6.9|c:1.0;0|3|2.4|c:0.21,6:0.79;0|3|2.4.6.7|c:1.0;0|3|2.4.6.8|c:1.0;0|3|2.4.6.9|c:1.0;0|3|2.5|c:1.0;0|3|2.6|c:0.241,7:0.407,8:0.352;0|3|2.6.7.8|c:1.0;0|3|2.6.7.9|c:1.0;0|3|2.6.8.9|c:1.0;0|3|2.7|c:1.0;0|3|2.8|c:1.0;0|3|2.9|c:1.0;0|3|3.4|c:0.179,6:0.821;0|3|3.4.6.7|c:1.0;0|3|3.4.6.8|c:1.0;0|3|3.4.6.9|c:1.0;0|3|3.5|c:1.0;0|3|3.6|7:1.0;0|3|3.6.7.8|c:1.0;0|3|3.6.7.9|c:1.0;0|3|3.7|c:1.0;0|3|3.8|c:1.0;0|3|3.9|c:1.0;0|3|4.5|c:1.0;0|3|4.6|c:1.0;0|3|4.7|c:1.0;0|3|4.8|c:1.0;0|3|4.9|c:1.0;0|4||0:0.032,1:0.104,2:0.54,3:0.302,4:0.022;0|4|0.1|c:0.02,2:0.555,3:0.123,4:0.074,7:0.228;0|4|0.1.2.3|c:0.367,4:0.113,7:0.52;0|4|0.1.2.3.4.5|c:1.0;0|4|0.1.2.3.4.6|c:1.0;0|4|0.1.2.3.4.7|c:0.967,8:0.033;0|4|0.1.2.3.4.7.8.9|c:1.0;0|4|0.1.2.3.4.8|c:1.0;0|4|0.1.2.3.4.9|c:1.0;0|4|0.1.2.3.7.8|c:1.0;0|4|0.1.2.3.7.9|c:1.0;0|4|0.1.2.4|c:0.542,7:0.458;0|4|0.1.2.4.7.8|c:1.0;0|4|0.1.2.4.7.9|c:1.0;0|4|0.1.2.5|c:1.0;0|4|0.1.2.6|c:1.0;0|4|0.1.2.7|c:0.178,8:0.822;0|4|0.1.2.7.8.9|c:1.0;0|4|0.1.2.8|c:1.0;0|4|0.1.2.9|c:1.0;0|4|0.1.3.4|c:0.306,7:0.694;0|4|0.1.3.4.7.8|c:1.0;0|4|0.1.3.4.7.9|c:1.0;0|4|0.1.3.5|c:1.0;0|4|0.1.3.6|c:1.0;0|4|0.1.3.7|8:1.0;0|4|0.1.3.7.8.9|c:1.0;0|4|0.1.3.8|c:1.0;0|4|0.1.3.9|c:1.0;0|4|0.1.4.5|c:1.0;0|4|0.1.4.6|c:1.0;0|4|0.1.4.7|c:0.118,8:0.882;0|4|0.1.4.7.8.9|c:1.0;0|4|0.1.4.8|c:1.0;0|4|0.1.4.9|c:1.0;0|4|0.1.7.8|c:1.0;0|4|0.1.7.9|c:1.0;0|4|0.2|3:0.035,7:0.965;0|4|0.2.3.4|c:0.038,7:0.962;0|4|0.2.3.4.7.8|c:1.0;0|4|0.2.3.4.7.9|c:1.0;0|4|0.2.3.5|c:1.0;0|4|0.2.3.6|c:1.0;0|4|0.2.3.7|8:1.0;0|4|0.2.3.7.8.9|c:1.0;0|4|0.2.3.8|c:1.0;0|4|0.2.3.9|c:1.0;0|4|0.2.7.8|c:1.0;0|4|0.2.7.9|c:1.0;0|4|0.3|c:0.178,4:0.288,7:0.534;0|4|0.3.4.5|c:1.0;0|4|0.3.4.6|c:1.0;0|4|0.3.4.7|c:0.505,8:0.495;0|4|0.3.4.7.8.9|c:1.0;0|4|0.3.4.8|c:1.0;0|4|0.3.4.9|c:1.0;0|4|0.3.7.8|c:1.0;0|4|0.3.7.9|c:1.0;0|4|0.4|c:0.437,7:0.563;0|4|0.4.7.8|c:1.0;0|4|0.4.7.9|c:1.0;0|4|0.5|c:1.0;0|4|0.6|c:1.0;0|4|0.7|8:1.0;0|4|0.7.8.9|c:1.0;0|4|0.8|c:1.0;0|4|0.9|c:1.0;0|4|1.2|3:0.271,7:0.729;0|4|1.2.3.4|7:1.0;0|4|1.2.3.4.7.8|c:1.0;0|4|1.2.3.4.7.9|c:1.0;0|4|1.2.3.5|c:1.0;0|4|1.2.3.6|c:1.0;0|4|1.2.3.7|8:1.0;0|4|1.2.3.7.8.9|c:1.0;0|4|1.2.3.8|c:1.0;0|4|1.2.3.9|c:1.0;0|4|1.2.7.8|c:1.0;0|4|1.2.7.9|c:1.0;0|4|1.3|c:0.053,4:0.544,7:0.403;0|4|1.3.4.5|c:1.0;0|4|1.3.4.6|c:1.0;0|4|1.3.4.7|8:1.0;0|4|1.3.4.7.8.9|c:1.0;0|4|1.3.4.8|c:1.0;0|4|1.3.4.9|c:1.0;0|4|1.3.7.8|c:1.0;0|4|1.3.7.9|c:1.0;0|4|1.4|c:0.504,7:0.496;0|4|1.4.7.8|c:1.0;0|4|1.4.7.9|c:1.0;0|4|1.5|c:1.0;0|4|1.6|c:1.0;0|4|1.7|c:0.333,8:0.333,9:0.333;0|4|1.7.8.9|c:1.0;0|4|1.8|c:1.0;0|4|1.9|c:1.0;0|4|2.3|c:0.424,4:0.26,7:0.317;0|4|2.3.4.5|c:1.0;0|4|2.3.4.6|c:1.0;0|4|2.3.4.7|c:1.0;0|4|2.3.4.8|c:1.0;0|4|2.3.4.9|c:1.0;0|4|2.3.7.8|c:1.0;0|4|2.3.7.9|c:1.0;0|4|2.4|c:0.768,7:0.232;0|4|2.4.7.8|c:1.0;0|4|2.4.7.9|c:1.0;0|4|2.5|c:1.0;0|4|2.6|c:1.0;0|4|2.7|c:0.937,8:0.063;0|4|2.7.8.9|c:1.0;0|4|2.8|c:1.0;0|4|2.9|c:1.0;0|4|3.4|c:0.022,7:0.978;0|4|3.4.7.8|c:1.0;0|4|3.4.7.9|c:1.0;0|4|3.5|c:1.0;0|4|3.6|c:1.0;0|4|3.7|8:1.0;0|4|3.7.8.9|c:1.0;0|4|3.8|c:1.0;0|4|3.9|c:1.0;0|4|4.5|c:1.0;0|4|4.6|c:1.0;0|4|4.7|c:0.501,8:0.499;0|4|4.7.8.9|c:1.0;0|4|4.8|c:1.0;0|4|4.9|c:1.0;0|5||1:0.039,3:0.961;0|5|1.2|3:1.0;0|5|1.2.3.4|c:1.0;0|5|1.2.3.5|c:1.0;0|5|1.2.3.6|c:1.0;0|5|1.2.3.7|c:1.0;0|5|1.2.3.8|c:1.0;0|5|1.2.3.9|c:1.0;0|5|1.3|8:1.0;0|5|1.3.8.9|c:1.0;0|5|1.4|c:0.899,8:0.101;0|5|1.4.8.9|c:1.0;0|5|1.5|c:1.0;0|5|1.6|c:1.0;0|5|1.7|c:1.0;0|5|1.8|c:0.5,9:0.5;0|5|1.9|c:1.0;0|5|3.4|c:1.0;0|5|3.5|c:1.0;0|5|3.6|c:1.0;0|5|3.7|c:1.0;0|5|3.8|c:1.0;0|5|3.9|c:1.0;0|6||0:0.027,1:0.174,2:0.125,4:0.674;0|6|0.1|2:0.225,3:0.057,4:0.672,9:0.046;0|6|0.1.2.3|4:0.847,9:0.153;0|6|0.1.2.3.4.5|c:1.0;0|6|0.1.2.3.4.6|c:1.0;0|6|0.1.2.3.4.7|c:1.0;0|6|0.1.2.3.4.8|c:1.0;0|6|0.1.2.3.4.9|c:1.0;0|6|0.1.2.4|9:1.0;0|6|0.1.2.5|c:1.0;0|6|0.1.2.6|c:1.0;0|6|0.1.2.7|c:1.0;0|6|0.1.2.8|c:1.0;0|6|0.1.2.9|c:1.0;0|6|0.1.3.4|9:1.0;0|6|0.1.3.5|c:1.0;0|6|0.1.3.6|c:1.0;0|6|0.1.3.7|c:1.0;0|6|0.1.3.8|c:1.0;0|6|0.1.3.9|c:1.0;0|6|0.1.4.5|c:1.0;0|6|0.1.4.6|c:1.0;0|6|0.1.4.7|c:1.0;0|6|0.1.4.8|c:1.0;0|6|0.1.4.9|c:1.0;0|6|0.2|4:1.0;0|6|0.2.4.5|c:1.0;0|6|0.2.4.6|c:1.0;0|6|0.2.4.7|c:1.0;0|6|0.2.4.8|c:1.0;0|6|0.2.4.9|c:1.0;0|6|0.3|4:1.0;0|6|0.3.4.5|c:1.0;0|6|0.3.4.6|c:1.0;0|6|0.3.4.7|c:1.0;0|6|0.3.4.8|c:1.0;0|6|0.3.4.9|c:1.0;0|6|0.4|9:1.0;0|6|0.5|c:1.0;0|6|0.6|c:1.0;0|6|0.7|c:1.0;0|6|0.8|c:1.0;0|6|0.9|c:1.0;0|6|1.2|4:1.0;0|6|1.2.4.5|c:1.0;0|6|1.2.4.6|c:1.0;0|6|1.2.4.7|c:1.0;0|6|1.2.4.8|c:1.0;0|6|1.2.4.9|c:1.0;0|6|1.3|4:1.0;0|6|1.3.4.5|c:1.0;0|6|1.3.4.6|c:1.0;0|6|1.3.4.7|c:1.0;0|6|1.3.4.8|c:1.0;0|6|1.3.4.9|c:1.0;0|6|1.4|9:1.0;0|6|1.5|c:1.0;0|6|1.6|c:1.0;0|6|1.7|c:1.0;0|6|1.8|c:1.0;0|6|1.9|c:1.0;0|6|2.3|4:1.0;0|6|2.3.4.5|c:1.0;0|6|2.3.4.6|c:1.0;0|6|2.3.4.7|c:1.0;0|6|2.3.4.8|c:1.0;0|6|2.3.4.9|c:1.0;0|6|2.4|9:1.0;0|6|2.5|c:1.0;0|6|2.6|c:1.0;0|6|2.7|c:1.0;0|6|2.8|c:1.0;0|6|2.9|c:1.0;0|6|4.5|c:1.0;0|6|4.6|c:1.0;0|6|4.7|c:1.0;0|6|4.8|c:1.0;0|6|4.9|c:1.0;1|1|0|1:0.027,2:0.402,3:0.521,4:0.05;1|1|0.1.2|3:0.385,4:0.45,7:0.088,9:0.077;1|1|0.1.2.3.4|5:0.021,9:0.979;1|1|0.1.2.3.4.5.6|c:0.732,9:0.268;1|1|0.1.2.3.4.5.7|c:0.651,8:0.027,9:0.322;1|1|0.1.2.3.4.5.7.8.9|c:1.0;1|1|0.1.2.3.4.5.8|c:0.544,9:0.456;1|1|0.1.2.3.4.5.9|c:1.0;1|1|0.1.2.3.5|c:0.138,6:0.037,7:0.104,8:0.039,9:0.682;1|1|0.1.2.3.5.6.7|c:0.629,8:0.044,9:0.328;1|1|0.1.2.3.5.6.7.8.9|c:1.0;1|1|0.1.2.3.5.6.8|c:0.645,9:0.355;1|1|0.1.2.3.5.6.9|c:1.0;1|1|0.1.2.3.5.7.8|c:0.668,9:0.332;1|1|0.1.2.3.5.7.9|c:1.0;1|1|0.1.2.3.5.8.9|c:1.0;1|1|0.1.2.3.6|c:0.208,7:0.079,9:0.713;1|1|0.1.2.3.6.7.8|c:0.734,9:0.266;1|1|0.1.2.3.6.7.9|c:1.0;1|1|0.1.2.3.7|c:0.117,8:0.03,9:0.853;1|1|0.1.2.3.7.8.9|c:1.0;1|1|0.1.2.3.8|c:0.063,9:0.937;1|1|0.1.2.3.9|c:1.0;1|1|0.1.2.4.5|c:0.1,6:0.034,7:0.054,8:0.044,9:0.768;1|1|0.1.2.4.5.6.7|c:0.034,9:0.966;1|1|0.1.2.4.5.6.8|c:0.026,9:0.974;1|1|0.1.2.4.5.6.9|c:1.0;1|1|0.1.2.4.5.7.8|c:0.602,9:0.398;1|1|0.1.2.4.5.7.9|c:1.0;1|1|0.1.2.4.5.8.9|c:1.0;1|1|0.1.2.4.6|c:0.256,7:0.08,8:0.025,9:0.639;1|1|0.1.2.4.6.7.8|c:0.877,9:0.123;1|1|0.1.2.4.6.7.9|c:1.0;1|1|0.1.2.4.6.8.9|c:1.0;1|1|0.1.2.4.7|c:0.264,8:0.129,9:0.607;1|1|0.1.2.4.7.8.9|c:1.0;1|1|0.1.2.4.8|c:0.863,9:0.137;1|1|0.1.2.4.9|c:1.0;1|1|0.1.2.7.8|c:1.0;1|1|0.1.2.7.9|c:1.0;1|1|0.1.3|4:0.903,9:0.097;1|1|0.1.3.4.5|c:0.128,8:0.134,9:0.738;1|1|0.1.3.4.5.8.9|c:1.0;1|1|0.1.3.4.6|c:0.204,8:0.126,9:0.67;1|1|0.1.3.4.6.8.9|c:1.0;1|1|0.1.3.4.7|c:0.277,8:0.203,9:0.52;1|1|0.1.3.4.7.8.9|c:1.0;1|1|0.1.3.4.8|c:0.355,9:0.645;1|1|0.1.3.4.9|c:1.0;1|1|0.1.4|9:1.0;1|1|0.1.5|c:0.229,6:0.025,7:0.027,8:0.087,9:0.631;1|1|0.1.5.6.7|c:0.657,8:0.123,9:0.22;1|1|0.1.5.6.7.8.9|c:1.0;1|1|0.1.5.6.8|c:0.863,9:0.137;1|1|0.1.5.6.9|c:1.0;1|1|0.1.5.7.8|c:0.863,9:0.137;1|1|0.1.5.7.9|c:1.0;1|1|0.1.5.8.9|c:1.0;1|1|0.1.6|c:0.183,8:0.058,9:0.759;1|1|0.1.6.8.9|c:1.0;1|1|0.1.7|c:0.401,8:0.195,9:0.404;1|1|0.1.7.8.9|c:1.0;1|1|0.1.8|c:0.224,9:0.776;1|1|0.1.9|c:1.0;1|1|0.2.3|4:1.0;1|1|0.2.3.4.5|c:0.025,8:0.025,9:0.95;1|1|0.2.3.4.5.8.9|c:1.0;1|1|0.2.3.4.6|9:1.0;1|1|0.2.3.4.7|9:1.0;1|1|0.2.3.4.8|c:0.859,9:0.141;1|1|0.2.3.4.9|c:1.0;1|1|0.2.4|9:1.0;1|1|0.2.5|c:0.683,6:0.032,7:0.219,8:0.03,9:0.036;1|1|0.2.5.6.7|c:0.679,8:0.11,9:0.211;1|1|0.2.5.6.7.8.9|c:1.0;1|1|0.2.5.6.8|c:0.9,9:0.1;1|1|0.2.5.6.9|c:1.0;1|1|0.2.5.7.8|c:0.872,9:0.128;1|1|0.2.5.7.9|c:1.0;1|1|0.2.5.8.9|c:1.0;1|1|0.2.6|c:1.0;1|1|0.2.7|c:0.388,8:0.144,9:0.468;1|1|0.2.7.8.9|c:1.0;1|1|0.2.8|c:0.463,9:0.537;1|1|0.2.9|c:1.0;1|1|0.3.4|9:1.0;1|1|0.3.5|c:0.553,6:0.257,8:0.051,9:0.14;1|1|0.3.5.6.7|c:0.738,8:0.081,9:0.181;1|1|0.3.5.6.7.8.9|c:1.0;1|1|0.3.5.6.8|c:0.966,9:0.034;1|1|0.3.5.6.9|c:1.0;1|1|0.3.5.8.9|c:1.0;1|1|0.3.6|c:1.0;1|1|0.3.7|c:1.0;1|1|0.3.8|9:1.0;1|1|0.3.9|c:1.0;1|1|0.4.5|c:0.714,6:0.194,8:0.069,9:0.023;1|1|0.4.5.6.7|c:0.728,8:0.088,9:0.184;1|1|0.4.5.6.7.8.9|c:1.0;1|1|0.4.5.6.8|c:0.951,9:0.049;1|1|0.4.5.6.9|c:1.0;1|1|0.4.5.8.9|c:1.0;1|1|0.4.6|c:0.817,7:0.028,8:0.054,9:0.101;1|1|0.4.6.7.8|c:0.858,9:0.142;1|1|0.4.6.7.9|c:1.0;1|1|0.4.6.8.9|c:1.0;1|1|0.4.7|c:1.0;1|1|0.4.8|c:1.0;1|1|0.4.9|c:1.0;1|1|1|2:0.327,3:0.502,4:0.171;1|1|1.2.3|4:0.865,9:0.135;1|1|1.2.3.4.5|9:1.0;1|1|1.2.3.4.6|c:0.036,8:0.067,9:0.898;1|1|1.2.3.4.6.8.9|c:1.0;1|1|1.2.3.4.7|9:1.0;1|1|1.2.3.4.8|c:0.902,9:0.098;1|1|1.2.3.4.9|c:1.0;1|1|1.2.4|9:1.0;1|1|1.2.5|c:0.407,6:0.286,9:0.306;1|1|1.2.5.6.7|c:0.707,9:0.293;1|1|1.2.5.6.8|c:0.56,9:0.44;1|1|1.2.5.6.9|c:1.0;1|1|1.2.6|c:1.0;1|1|1.2.7|c:0.086,8:0.108,9:0.805;1|1|1.2.7.8.9|c:1.0;1|1|1.2.8|c:1.0;1|1|1.2.9|c:1.0;1|1|1.3.4|9:1.0;1|1|1.3.5|c:0.746,6:0.231,7:0.023;1|1|1.3.5.6.7|c:1.0;1|1|1.3.5.6.8|c:1.0;1|1|1.3.5.6.9|c:1.0;1|1|1.3.5.7.8|c:0.888,9:0.112;1|1|1.3.5.7.9|c:1.0;1|1|1.3.6|c:1.0;1|1|1.3.7|c:1.0;1|1|1.3.8|9:1.0;1|1|1.3.9|c:1.0;1|1|1.4.5|c:0.73,6:0.223,8:0.047;1|1|1.4.5.6.7|c:1.0;1|1|1.4.5.6.8|c:1.0;1|1|1.4.5.6.9|c:1.0;1|1|1.4.5.8.9|c:1.0;1|1|1.4.6|c:0.828,7:0.109,8:0.02,9:0.042;1|1|1.4.6.7.8|c:0.842,9:0.158;1|1|1.4.6.7.9|c:1.0;1|1|1.4.6.8.9|c:1.0;1|1|1.4.7|c:1.0;1|1|1.4.8|c:1.0;1|1|1.4.9|c:1.0;1|1|2|3:0.85,4:0.116,7:0.033;1|1|2.3.4|9:1.0;1|1|2.3.5|c:1.0;1|1|2.3.6|c:1.0;1|1|2.3.7|c:1.0;1|1|2.3.8|c:0.031,9:0.969;1|1|2.3.9|c:1.0;1|1|2.4.5|c:0.608,7:0.392;1|1|2.4.5.7.8|c:1.0;1|1|2.4.5.7.9|c:1.0;1|1|2.4.6|c:0.978,7:0.022;1|1|2.4.6.7.8|c:0.753,9:0.247;1|1|2.4.6.7.9|c:1.0;1|1|2.4.7|c:1.0;1|1|2.4.8|c:1.0;1|1|2.4.9|c:1.0;1|1|2.7.8|c:1.0;1|1|2.7.9|c:1.0;1|1|3|4:1.0;1|1|3.4.5|c:0.409,6:0.066,7:0.033,8:0.308,9:0.184;1|1|3.4.5.6.7|c:0.515,8:0.061,9:0.424;1|1|3.4.5.6.7.8.9|c:1.0;1|1|3.4.5.6.8|c:0.474,9:0.526;1|1|3.4.5.6.9|c:1.0;1|1|3.4.5.7.8|c:0.521,9:0.479;1|1|3.4.5.7.9|c:1.0;1|1|3.4.5.8.9|c:1.0;1|1|3.4.6|c:0.422,7:0.159,8:0.196,9:0.223;1|1|3.4.6.7.8|c:0.827,9:0.173;1|1|3.4.6.7.9|c:1.0;1|1|3.4.6.8.9|c:1.0;1|1|3.4.7|c:1.0;1|1|3.4.8|c:1.0;1|1|3.4.9|c:1.0;1|1|4|9:1.0;1|1|5|c:0.751,7:0.249;1|1|5.7.8|c:0.967,9:0.033;1|1|5.7.9|c:1.0;1|1|6|c:1.0;1|1|7|c:1.0;1|1|8|c:1.0;1|1|9|c:1.0;1|2|0|2:0.237,3:0.188,4:0.035,5:0.54;1|2|0.2.3|4:0.491,5:0.509;1|2|0.2.3.4.5|c:1.0;1|2|0.2.3.4.6|c:1.0;1|2|0.2.3.4.7|c:1.0;1|2|0.2.3.4.8|c:1.0;1|2|0.2.3.4.9|c:1.0;1|2|0.2.3.5.6|c:1.0;1|2|0.2.3.5.7|c:1.0;1|2|0.2.3.5.8|c:1.0;1|2|0.2.3.5.9|c:1.0;1|2|0.2.4|c:0.474,5:0.526;1|2|0.2.4.5.6|c:1.0;1|2|0.2.4.5.7|c:1.0;1|2|0.2.4.5.8|c:1.0;1|2|0.2.4.5.9|c:1.0;1|2|0.2.5|c:0.761,6:0.031,7:0.18,8:0.028;1|2|0.2.5.6.7|c:1.0;1|2|0.2.5.6.8|c:1.0;1|2|0.2.5.6.9|c:1.0;1|2|0.2.5.7.8|c:1.0;1|2|0.2.5.7.9|c:1.0;1|2|0.2.5.8.9|c:1.0;1|2|0.2.6|c:1.0;1|2|0.2.7|c:1.0;1|2|0.2.8|c:1.0;1|2|0.2.9|c:1.0;1|2|0.3.4|c:0.224,5:0.776;1|2|0.3.4.5.6|c:1.0;1|2|0.3.4.5.7|c:1.0;1|2|0.3.4.5.8|c:1.0;1|2|0.3.4.5.9|c:1.0;1|2|0.3.5|c:0.781,6:0.164,8:0.055;1|2|0.3.5.6.7|c:1.0;1|2|0.3.5.6.8|c:1.0;1|2|0.3.5.6.9|c:1.0;1|2|0.3.5.8.9|c:1.0;1|2|0.3.6|c:1.0;1|2|0.3.7|c:1.0;1|2|0.3.8|c:1.0;1|2|0.3.9|c:1.0;1|2|0.4.5|c:1.0;1|2|0.4.6|c:1.0;1|2|0.4.7|c:1.0;1|2|0.4.8|c:1.0;1|2|0.4.9|c:1.0;1|2|0.5.6|c:1.0;1|2|0.5.7|c:1.0;1|2|0.5.8|c:1.0;1|2|0.5.9|c:1.0;1|2|1|c:0.453,2:0.212,3:0.239,4:0.096;1|2|1.2.3|c:0.285,4:0.451,5:0.264;1|2|1.2.3.4.5|c:1.0;1|2|1.2.3.4.6|c:1.0;1|2|1.2.3.4.7|c:1.0;1|2|1.2.3.4.8|c:1.0;1|2|1.2.3.4.9|c:1.0;1|2|1.2.3.5.6|c:1.0;1|2|1.2.3.5.7|c:1.0;1|2|1.2.3.5.8|c:1.0;1|2|1.2.3.5.9|c:1.0;1|2|1.2.4|c:0.86,5:0.14;1|2|1.2.4.5.6|c:1.0;1|2|1.2.4.5.7|c:1.0;1|2|1.2.4.5.8|c:1.0;1|2|1.2.4.5.9|c:1.0;1|2|1.2.5|c:0.821,6:0.179;1|2|1.2.5.6.7|c:1.0;1|2|1.2.5.6.8|c:1.0;1|2|1.2.5.6.9|c:1.0;1|2|1.2.6|c:1.0;1|2|1.2.7|c:1.0;1|2|1.2.8|c:1.0;1|2|1.2.9|c:1.0;1|2|1.3.4|c:0.848,5:0.152;1|2|1.3.4.5.6|c:1.0;1|2|1.3.4.5.7|c:1.0;1|2|1.3.4.5.8|c:1.0;1|2|1.3.4.5.9|c:1.0;1|2|1.3.5|c:0.444,6:0.503,7:0.053;1|2|1.3.5.6.7|c:1.0;1|2|1.3.5.6.8|c:1.0;1|2|1.3.5.6.9|c:1.0;1|2|1.3.5.7.8|c:1.0;1|2|1.3.5.7.9|c:1.0;1|2|1.3.6|c:1.0;1|2|1.3.7|c:1.0;1|2|1.3.8|c:1.0;1|2|1.3.9|c:1.0;1|2|1.4.5|c:1.0;1|2|1.4.6|c:1.0;1|2|1.4.7|c:1.0;1|2|1.4.8|c:1.0;1|2|1.4.9|c:1.0;1|2|2|c:0.524,3:0.42,4:0.056;1|2|2.3.4|c:0.72,5:0.28;1|2|2.3.4.5.6|c:1.0;1|2|2.3.4.5.7|c:1.0;1|2|2.3.4.5.8|c:1.0;1|2|2.3.4.5.9|c:1.0;1|2|2.3.5|c:0.021,6:0.477,7:0.477,8:0.026;1|2|2.3.5.6.7|c:1.0;1|2|2.3.5.6.8|c:1.0;1|2|2.3.5.6.9|c:1.0;1|2|2.3.5.7.8|c:1.0;1|2|2.3.5.7.9|c:1.0;1|2|2.3.5.8.9|c:1.0;1|2|2.3.6|c:1.0;1|2|2.3.7|c:1.0;1|2|2.3.8|c:1.0;1|2|2.3.9|c:1.0;1|2|2.4.5|c:1.0;1|2|2.4.6|c:1.0;1|2|2.4.7|c:1.0;1|2|2.4.8|c:1.0;1|2|2.4.9|c:1.0;1|2|3|c:0.654,4:0.346;1|2|3.4.5|c:1.0;1|2|3.4.6|c:1.0;1|2|3.4.7|c:1.0;1|2|3.4.8|c:1.0;1|2|3.4.9|c:1.0;1|2|4|c:0.946,5:0.054;1|2|4.5.6|c:1.0;1|2|4.5.7|c:1.0;1|2|4.5.8|c:1.0;1|2|4.5.9|c:1.0;1|2|5|c:0.932,7:0.068;1|2|5.7.8|c:1.0;1|2|5.7.9|c:1.0;1|2|6|c:1.0;1|2|7|c:1.0;1|2|8|c:1.0;1|2|9|c:1.0;1|3|0|c:0.537,2:0.19,3:0.273;1|3|0.2.3|c:0.091,4:0.636,6:0.273;1|3|0.2.3.4.5|c:1.0;1|3|0.2.3.4.6|c:1.0;1|3|0.2.3.4.7|c:1.0;1|3|0.2.3.4.8|c:1.0;1|3|0.2.3.4.9|c:1.0;1|3|0.2.3.6.7|c:1.0;1|3|0.2.3.6.8|c:1.0;1|3|0.2.3.6.9|c:1.0;1|3|0.2.4|c:0.928,6:0.072;1|3|0.2.4.6.7|c:1.0;1|3|0.2.4.6.8|c:1.0;1|3|0.2.4.6.9|c:1.0;1|3|0.2.5|c:1.0;1|3|0.2.6|7:0.749,8:0.251;1|3|0.2.6.7.8|c:1.0;1|3|0.2.6.7.9|c:1.0;1|3|0.2.6.8.9|c:1.0;1|3|0.2.7|c:1.0;1|3|0.2.8|c:1.0;1|3|0.2.9|c:1.0;1|3|0.3.4|c:0.974,6:0.026;1|3|0.3.4.6.7|c:1.0;1|3|0.3.4.6.8|c:1.0;1|3|0.3.4.6.9|c:1.0;1|3|0.3.5|c:1.0;1|3|0.3.6|7:0.719,8:0.281;1|3|0.3.6.7.8|c:1.0;1|3|0.3.6.7.9|c:1.0;1|3|0.3.6.8.9|c:1.0;1|3|0.3.7|c:1.0;1|3|0.3.8|c:1.0;1|3|0.3.9|c:1.0;1|3|1|2:0.137,3:0.12,4:0.079,6:0.664;1|3|1.2.3|4:0.272,6:0.728;1|3|1.2.3.4.5|c:1.0;1|3|1.2.3.4.6|c:1.0;1|3|1.2.3.4.7|c:1.0;1|3|1.2.3.4.8|c:1.0;1|3|1.2.3.4.9|c:1.0;1|3|1.2.3.6.7|c:1.0;1|3|1.2.3.6.8|c:1.0;1|3|1.2.3.6.9|c:1.0;1|3|1.2.4|c:0.376,6:0.624;1|3|1.2.4.6.7|c:1.0;1|3|1.2.4.6.8|c:1.0;1|3|1.2.4.6.9|c:1.0;1|3|1.2.5|c:1.0;1|3|1.2.6|7:0.26,8:0.74;1|3|1.2.6.7.8|c:1.0;1|3|1.2.6.7.9|c:1.0;1|3|1.2.6.8.9|c:1.0;1|3|1.2.7|c:1.0;1|3|1.2.8|c:1.0;1|3|1.2.9|c:1.0;1|3|1.3.4|6:1.0;1|3|1.3.4.6.7|c:1.0;1|3|1.3.4.6.8|c:1.0;1|3|1.3.4.6.9|c:1.0;1|3|1.3.5|c:1.0;1|3|1.3.6|7:0.979,8:0.021;1|3|1.3.6.7.8|c:1.0;1|3|1.3.6.7.9|c:1.0;1|3|1.3.6.8.9|c:1.0;1|3|1.3.7|c:1.0;1|3|1.3.8|c:1.0;1|3|1.3.9|c:1.0;1|3|1.4.5|c:1.0;1|3|1.4.6|c:0.621,7:0.282,8:0.097;1|3|1.4.6.7.8|c:1.0;1|3|1.4.6.7.9|c:1.0;1|3|1.4.6.8.9|c:1.0;1|3|1.4.7|c:1.0;1|3|1.4.8|c:1.0;1|3|1.4.9|c:1.0;1|3|1.6.7|c:1.0;1|3|1.6.8|c:1.0;1|3|1.6.9|c:1.0;1|3|2|c:0.526,3:0.419,4:0.056;1|3|2.3.4|c:0.797,6:0.203;1|3|2.3.4.6.7|c:1.0;1|3|2.3.4.6.8|c:1.0;1|3|2.3.4.6.9|c:1.0;1|3|2.3.5|c:1.0;1|3|2.3.6|7:1.0;1|3|2.3.6.7.8|c:1.0;1|3|2.3.6.7.9|c:1.0;1|3|2.3.7|c:1.0;1|3|2.3.8|c:1.0;1|3|2.3.9|c:1.0;1|3|2.4.5|c:1.0;1|3|2.4.6|c:0.739,7:0.134,8:0.127;1|3|2.4.6.7.8|c:1.0;1|3|2.4.6.7.9|c:1.0;1|3|2.4.6.8.9|c:1.0;1|3|2.4.7|c:1.0;1|3|2.4.8|c:1.0;1|3|2.4.9|c:1.0;1|3|3|c:0.646,4:0.354;1|3|3.4.5|c:1.0;1|3|3.4.6|c:1.0;1|3|3.4.7|c:1.0;1|3|3.4.8|c:1.0;1|3|3.4.9|c:1.0;1|3|4|c:0.927,6:0.073;1|3|4.6.7|c:1.0;1|3|4.6.8|c:1.0;1|3|4.6.9|c:1.0;1|3|5|c:1.0;1|3|6|c:0.608,7:0.236,8:0.156;1|3|6.7.8|c:1.0;1|3|6.7.9|c:1.0;1|3|6.8.9|c:1.0;1|3|7|c:1.0;1|3|8|c:1.0;1|3|9|c:1.0;1|4|0|c:0.243,2:0.545,3:0.212;1|4|0.2.3|c:0.355,4:0.62,7:0.025;1|4|0.2.3.4.5|c:1.0;1|4|0.2.3.4.6|c:1.0;1|4|0.2.3.4.7|c:1.0;1|4|0.2.3.4.8|c:1.0;1|4|0.2.3.4.9|c:1.0;1|4|0.2.3.7.8|c:1.0;1|4|0.2.3.7.9|c:1.0;1|4|0.2.4|c:1.0;1|4|0.2.5|c:1.0;1|4|0.2.6|c:1.0;1|4|0.2.7|c:0.73,8:0.27;1|4|0.2.7.8.9|c:1.0;1|4|0.2.8|c:1.0;1|4|0.2.9|c:1.0;1|4|0.3.4|c:0.666,7:0.334;1|4|0.3.4.7.8|c:1.0;1|4|0.3.4.7.9|c:1.0;1|4|0.3.5|c:1.0;1|4|0.3.6|c:1.0;1|4|0.3.7|c:0.383,8:0.617;1|4|0.3.7.8.9|c:1.0;1|4|0.3.8|c:1.0;1|4|0.3.9|c:1.0;1|4|1|c:0.375,2:0.367,3:0.205,4:0.053;1|4|1.2.3|c:0.414,4:0.564,7:0.022;1|4|1.2.3.4.5|c:1.0;1|4|1.2.3.4.6|c:1.0;1|4|1.2.3.4.7|c:1.0;1|4|1.2.3.4.8|c:1.0;1|4|1.2.3.4.9|c:1.0;1|4|1.2.3.7.8|c:1.0;1|4|1.2.3.7.9|c:1.0;1|4|1.2.4|c:1.0;1|4|1.2.5|c:1.0;1|4|1.2.6|c:1.0;1|4|1.2.7|c:0.892,8:0.108;1|4|1.2.7.8.9|c:1.0;1|4|1.2.8|c:1.0;1|4|1.2.9|c:1.0;1|4|1.3.4|c:1.0;1|4|1.3.5|c:1.0;1|4|1.3.6|c:1.0;1|4|1.3.7|8:1.0;1|4|1.3.7.8.9|c:1.0;1|4|1.3.8|c:1.0;1|4|1.3.9|c:1.0;1|4|1.4.5|c:1.0;1|4|1.4.6|c:1.0;1|4|1.4.7|8:1.0;1|4|1.4.7.8.9|c:1.0;1|4|1.4.8|c:1.0;1|4|1.4.9|c:1.0;1|4|2|3:0.228,4:0.033,7:0.739;1|4|2.3.4|c:0.023,7:0.977;1|4|2.3.4.7.8|c:1.0;1|4|2.3.4.7.9|c:1.0;1|4|2.3.5|c:1.0;1|4|2.3.6|c:1.0;1|4|2.3.7|8:1.0;1|4|2.3.7.8.9|c:1.0;1|4|2.3.8|c:1.0;1|4|2.3.9|c:1.0;1|4|2.4.5|c:1.0;1|4|2.4.6|c:1.0;1|4|2.4.7|c:0.157,8:0.843;1|4|2.4.7.8.9|c:1.0;1|4|2.4.8|c:1.0;1|4|2.4.9|c:1.0;1|4|2.7.8|c:1.0;1|4|2.7.9|c:1.0;1|4|3|c:0.54,4:0.46;1|4|3.4.5|c:1.0;1|4|3.4.6|c:1.0;1|4|3.4.7|8:1.0;1|4|3.4.7.8.9|c:1.0;1|4|3.4.8|c:1.0;1|4|3.4.9|c:1.0;1|4|4|c:1.0;1|4|5|c:1.0;1|4|6|c:1.0;1|4|7|8:1.0;1|4|7.8.9|c:1.0;1|4|8|c:1.0;1|4|9|c:1.0;1|5|0|3:1.0;1|5|0.3.4|c:1.0;1|5|0.3.5|c:1.0;1|5|0.3.6|c:1.0;1|5|0.3.7|c:1.0;1|5|0.3.8|c:1.0;1|5|0.3.9|c:1.0;1|5|1|3:1.0;1|5|1.3.4|c:1.0;1|5|1.3.5|c:1.0;1|5|1.3.6|c:1.0;1|5|1.3.7|c:1.0;1|5|1.3.8|c:1.0;1|5|1.3.9|c:1.0;1|5|2|3:1.0;1|5|2.3.4|c:1.0;1|5|2.3.5|c:1.0;1|5|2.3.6|c:1.0;1|5|2.3.7|c:1.0;1|5|2.3.8|c:1.0;1|5|2.3.9|c:1.0;1|5|3|4:0.138,8:0.862;1|5|3.4.5|c:1.0;1|5|3.4.6|c:1.0;1|5|3.4.7|c:1.0;1|5|3.4.8|c:0.5,9:0.5;1|5|3.4.9|c:1.0;1|5|3.8.9|c:1.0;1|5|4|c:0.892,8:0.108;1|5|4.8.9|c:1.0;1|5|5|c:1.0;1|5|6|c:1.0;1|5|7|c:1.0;1|5|8|c:0.5,9:0.5;1|5|9|c:1.0;1|6|0|2:0.206,3:0.049,4:0.745;1|6|0.2.3|4:1.0;1|6|0.2.3.4.5|c:1.0;1|6|0.2.3.4.6|c:1.0;1|6|0.2.3.4.7|c:1.0;1|6|0.2.3.4.8|c:1.0;1|6|0.2.3.4.9|c:1.0;1|6|0.2.4|9:1.0;1|6|0.2.5|c:1.0;1|6|0.2.6|c:1.0;1|6|0.2.7|c:1.0;1|6|0.2.8|c:1.0;1|6|0.2.9|c:1.0;1|6|0.3.4|9:1.0;1|6|0.3.5|c:1.0;1|6|0.3.6|c:1.0;1|6|0.3.7|c:1.0;1|6|0.3.8|c:1.0;1|6|0.3.9|c:1.0;1|6|0.4.5|c:1.0;1|6|0.4.6|c:1.0;1|6|0.4.7|c:1.0;1|6|0.4.8|c:1.0;1|6|0.4.9|c:1.0;1|6|1|2:0.105,3:0.056,4:0.839;1|6|1.2.3|4:1.0;1|6|1.2.3.4.5|c:1.0;1|6|1.2.3.4.6|c:1.0;1|6|1.2.3.4.7|c:1.0;1|6|1.2.3.4.8|c:1.0;1|6|1.2.3.4.9|c:1.0;1|6|1.2.4|9:1.0;1|6|1.2.5|c:1.0;1|6|1.2.6|c:1.0;1|6|1.2.7|c:1.0;1|6|1.2.8|c:1.0;1|6|1.2.9|c:1.0;1|6|1.3.4|9:1.0;1|6|1.3.5|c:1.0;1|6|1.3.6|c:1.0;1|6|1.3.7|c:1.0;1|6|1.3.8|c:1.0;1|6|1.3.9|c:1.0;1|6|1.4.5|c:1.0;1|6|1.4.6|c:1.0;1|6|1.4.7|c:1.0;1|6|1.4.8|c:1.0;1|6|1.4.9|c:1.0;1|6|2|4:1.0;1|6|2.4.5|c:1.0;1|6|2.4.6|c:1.0;1|6|2.4.7|c:1.0;1|6|2.4.8|c:1.0;1|6|2.4.9|c:1.0;1|6|3|4:1.0;1|6|3.4.5|c:1.0;1|6|3.4.6|c:1.0;1|6|3.4.7|c:1.0;1|6|3.4.8|c:1.0;1|6|3.4.9|c:1.0;1|6|4|9:1.0;1|6|5|c:1.0;1|6|6|c:1.0;1|6|7|c:1.0;1|6|8|c:1.0;1|6|9|c:1.0\"\n", "liars_dice/game.py": "\"\"\"\nGame engine: runs one full game of Liar's Dice and returns a GameRecord.\n\"\"\"\nfrom __future__ import annotations\n\nimport random\nfrom typing import Optional, Sequence\n\nfrom .core import (\n    Bid, BidEvent, Challenge, GameConfig, GameRecord, RoundRecord, RoundResult,\n)\nfrom .players import Player\nfrom .view import PlayerView\n\n\nclass IllegalMove(Exception):\n    pass\n\n\nclass Game:\n    def __init__(\n        self,\n        players: Sequence[Player],\n        config: GameConfig = GameConfig(),\n        seed: Optional[int] = None,\n        game_id: int = 0,\n        verbose: bool = False,\n        max_bids_per_round: int = 1000,\n    ):\n        names = [p.name for p in players]\n        if len(set(names)) != len(names):\n            raise ValueError(\"Player names must be unique\")\n        if len(players) < 2:\n            raise ValueError(\"Need at least 2 players\")\n        self.players = {p.name: p for p in players}\n        self.seating = names                          # fixed table order\n        self.config = config\n        self.rng = random.Random(seed)\n        self.verbose = verbose\n        self.max_bids = max_bids_per_round\n        self.dice_left = {n: config.dice_per_player for n in names}\n        self.record = GameRecord(\n            game_id=game_id,\n            config=config,\n            players=tuple(names),\n            strategies={p.name: p.describe() for p in players},\n            seed=seed,\n        )\n\n    # ------------------------------------------------------------------ helpers\n    def _log(self, *a):\n        if self.verbose:\n            print(*a)\n\n    def _active(self) -> list[str]:\n        return [n for n in self.seating if self.dice_left[n] > 0]\n\n    def _order_from(self, starter: str) -> tuple[str, ...]:\n        \"\"\"Active players in table order, beginning with `starter` (or the next active seat).\"\"\"\n        n = len(self.seating)\n        i = self.seating.index(starter)\n        order = [self.seating[(i + k) % n] for k in range(n)]\n        return tuple(p for p in order if self.dice_left[p] > 0)\n\n    # ------------------------------------------------------------------ play\n    def play(self) -> GameRecord:\n        for p in self.players.values():\n            p.new_game(tuple(self.seating), self.config)\n\n        starter = self.seating[self.rng.randrange(len(self.seating))]\n        round_no = 0\n        while len(self._active()) > 1:\n            round_no += 1\n            rec = self._play_round(round_no, starter)\n            self.record.rounds.append(rec)\n            for p in self.players.values():\n                p.round_finished(rec)\n\n            loser = rec.result.loser\n            if self.config.loser_starts_next_round and self.dice_left[loser] > 0:\n                starter = loser\n            else:\n                # loser eliminated (or rule off): next active seat after the loser\n                starter = self._order_from(loser)[0] if self._active() else loser\n\n        self.record.winner = self._active()[0]\n        self._log(f\"*** {self.record.winner} wins after {round_no} rounds ***\")\n        return self.record\n\n    def _play_round(self, round_no: int, starter: str) -> RoundRecord:\n        order = self._order_from(starter)\n        dice = {\n            p: tuple(sorted(self.rng.randint(1, self.config.faces) for _ in range(self.dice_left[p])))\n            for p in order\n        }\n        counts = tuple((p, self.dice_left[p]) for p in order)\n        past = tuple(self.record.rounds)\n        bids: list[BidEvent] = []\n        self._log(f\"\\n--- Round {round_no} | \" +\n                  \", \".join(f\"{p}:{dice[p]}\" for p in order))\n\n        turn = 0\n        while True:\n            me = order[turn % len(order)]\n            view = PlayerView(\n                me=me, my_dice=dice[me], config=self.config, round_number=round_no,\n                seating=order, dice_counts=counts, current_bids=tuple(bids),\n                past_rounds=past, all_players=tuple(self.seating),\n            )\n            action = self.players[me].decide(view)\n\n            if isinstance(action, Challenge):\n                if not bids:\n                    raise IllegalMove(f\"{me} challenged with no bid on the table\")\n                result = self._resolve(me, bids[-1], dice)\n                self._log(f\"  {me}: LIAR! -> {bids[-1].bid} had {result.actual_count}; \"\n                          f\"{result.loser} loses a die\")\n                return RoundRecord(\n                    round_number=round_no, seating=order, dice_counts=counts,\n                    dice=tuple((p, dice[p]) for p in order),\n                    bids=tuple(bids), result=result,\n                )\n            elif isinstance(action, Bid):\n                if not view.is_legal(action):\n                    raise IllegalMove(f\"{me} made illegal bid {action} (last was {view.last_bid})\")\n                bids.append(BidEvent(turn=turn, player=me, bid=action))\n                self._log(f\"  {me}: {action}\")\n            else:\n                raise IllegalMove(f\"{me} returned {action!r}, expected Bid or Challenge\")\n\n            turn += 1\n            if turn > self.max_bids:\n                raise RuntimeError(\"Round exceeded max bids - strategy loop?\")\n\n    def _resolve(self, challenger: str, last: BidEvent, dice: dict) -> RoundResult:\n        bid = last.bid\n        actual = sum(self.config.matches(d, bid.face) for ds in dice.values() for d in ds)\n        true = actual >= bid.quantity\n        loser = challenger if true else last.player\n        self.dice_left[loser] -= 1\n        eliminated = self.dice_left[loser] == 0\n        if eliminated:\n            self.record.elimination_order.append(loser)\n        return RoundResult(\n            challenger=challenger, bidder=last.player, challenged_bid=bid,\n            actual_count=actual, bid_was_true=true, loser=loser, eliminated=eliminated,\n        )\n", "liars_dice/players.py": "\"\"\"\nPlayer strategies.\n\nTo write a new strategy, subclass Player and implement decide(view) -> Bid | Challenge.\n`view` is a PlayerView (see view.py): your dice, everyone's dice counts, the bids so far\nthis round, and the full revealed history of every previous round in this game.\n\nOptional hooks:\n  - new_game(...)        called once at the start of each game\n  - round_finished(rec)  called after every round with the full RoundRecord\nThese let a strategy keep its own memory across rounds/games (e.g. opponent models).\n\"\"\"\nfrom __future__ import annotations\n\nimport random\nfrom typing import Optional\n\nfrom .core import Action, Bid, Challenge, GameConfig, RoundRecord\nfrom .view import PlayerView\n\n\nclass Player:\n    \"\"\"Base class. `name` must be unique within a game.\"\"\"\n\n    def __init__(self, name: str, seed: Optional[int] = None):\n        self.name = name\n        self.rng = random.Random(seed)\n\n    def describe(self) -> str:\n        return type(self).__name__\n\n    # hooks -------------------------------------------------------------\n    def new_game(self, players: tuple[str, ...], config: GameConfig) -> None:\n        pass\n\n    def round_finished(self, record: RoundRecord) -> None:\n        pass\n\n    # main decision -----------------------------------------------------\n    def decide(self, view: PlayerView) -> Action:\n        raise NotImplementedError\n\n\n# --------------------------------------------------------------------------- #\n# Simple (deliberately weak) strategies\n# --------------------------------------------------------------------------- #\nclass RandomPlayer(Player):\n    \"\"\"Challenges with a fixed probability; otherwise makes a small random raise.\"\"\"\n\n    def __init__(self, name, challenge_prob: float = 0.3, seed=None):\n        super().__init__(name, seed)\n        self.challenge_prob = challenge_prob\n\n    def describe(self):\n        return f\"Random(p_challenge={self.challenge_prob})\"\n\n    def decide(self, view):\n        if view.can_challenge and self.rng.random() < self.challenge_prob:\n            return Challenge()\n        options = view.legal_bids()\n        if not options:\n            return Challenge()\n        # pick among the cheapest few raises so the game doesn't explode instantly\n        return self.rng.choice(options[: len(view.config.biddable_faces()) + 2])\n\n\nclass OwnDiceOnlyPlayer(Player):\n    \"\"\"\n    Assumes the other dice are uniform, works out the expected count for the current\n    bid's face, and challenges if the bid exceeds that expectation by `margin`.\n    Otherwise bids the minimum raise on whichever face it holds the most of.\n    \"\"\"\n\n    def __init__(self, name, margin: float = 0.5, seed=None):\n        super().__init__(name, seed)\n        self.margin = margin\n\n    def describe(self):\n        return f\"OwnDiceOnly(margin={self.margin})\"\n\n    def decide(self, view):\n        last = view.last_bid\n        if last and last.quantity > view.expected_count(last.face) + self.margin:\n            return Challenge()\n        faces = list(view.config.biddable_faces())\n        best_face = max(faces, key=lambda f: (view.my_count(f), f))\n        bid = view.min_raise(best_face)\n        if bid is None:  # can't raise on my face; take any cheapest raise\n            options = view.legal_bids()\n            return options[0] if options else Challenge()\n        return bid\n\n\nclass BluffingPlayer(Player):\n    \"\"\"Always raises (often by a lot) and only challenges once a bid is near impossible.\"\"\"\n\n    def __init__(self, name, jump: int = 2, seed=None):\n        super().__init__(name, seed)\n        self.jump = jump\n\n    def describe(self):\n        return f\"Bluffer(jump={self.jump})\"\n\n    def decide(self, view):\n        last = view.last_bid\n        if last and view.prob_at_least(last) < 0.05:\n            return Challenge()\n        face = self.rng.choice(list(view.config.biddable_faces()))\n        base = view.min_raise(face)\n        if base is None:\n            return Challenge() if view.can_challenge else view.legal_bids()[0]\n        q = min(base.quantity + self.rng.randint(0, self.jump), view.total_dice)\n        return Bid(q, face)\n\n\nclass ProbabilisticPlayer(Player):\n    \"\"\"\n    Reasonable baseline: uses binomial probability given its own dice.\n    Challenges if P(last bid true) < threshold; otherwise makes the legal raise that is\n    most likely to be true (ties -> lowest bid).\n    \"\"\"\n\n    def __init__(self, name, threshold: float = 0.4, seed=None):\n        super().__init__(name, seed)\n        self.threshold = threshold\n\n    def describe(self):\n        return f\"Probabilistic(threshold={self.threshold})\"\n\n    def decide(self, view):\n        last = view.last_bid\n        if last and view.prob_at_least(last) < self.threshold:\n            return Challenge()\n        options = view.min_raises()   # the most likely raise is always one of these\n        if not options:\n            return Challenge()\n        best = max(options, key=lambda b: (view.prob_at_least(b), -b.quantity, -b.face))\n        # If even the best raise is worse than calling, call instead.\n        if last and view.prob_at_least(best) < 1 - view.prob_at_least(last):\n            return Challenge()\n        return best\n\n\n# --------------------------------------------------------------------------- #\n# A first history-aware strategy\n# --------------------------------------------------------------------------- #\nclass HandReader(Player):\n    \"\"\"\n    Learns, for each opponent, how often their bids are backed by their own dice\n    (checked against the dice revealed at the end of every round). When an opponent\n    who usually bids what they hold names a face this round, HandReader assumes one of\n    that player's dice shows it. Otherwise it plays like ProbabilisticPlayer.\n    Memory persists across games in a tournament.\n    \"\"\"\n\n    def __init__(self, name, threshold: float = 0.4, trust: float = 0.6, seed=None):\n        super().__init__(name, seed)\n        self.threshold = threshold\n        self.trust = trust\n        self.honesty: dict[str, list[int]] = {}   # player -> [backed bids, total bids]\n        self.config: Optional[GameConfig] = None\n\n    def describe(self):\n        return f\"HandReader(threshold={self.threshold}, trust={self.trust})\"\n\n    def new_game(self, players, config):\n        self.config = config\n\n    def round_finished(self, rec):\n        for ev in rec.bids:\n            held = any(self.config.matches(d, ev.bid.face) for d in rec.dice_of(ev.player))\n            h = self.honesty.setdefault(ev.player, [1, 2])   # weak prior: 50%\n            h[0] += held\n            h[1] += 1\n\n    def is_honest(self, player: str) -> bool:\n        h, t = self.honesty.get(player, (1, 2))\n        return h / t > self.trust\n\n    def prob_true(self, view: PlayerView, bid: Bid) -> float:\n        from .view import binom_tail\n        need = bid.quantity - view.my_count(bid.face)\n        n = view.unknown_dice\n        credited = set()\n        for ev in view.current_bids:\n            p = ev.player\n            if p != view.me and p not in credited and ev.bid.face == bid.face and self.is_honest(p):\n                credited.add(p)\n                need -= 1\n                n -= 1\n        return binom_tail(need, n, view.config.p_match(bid.face))\n\n    def decide(self, view):\n        last = view.last_bid\n        if last and self.prob_true(view, last) < self.threshold:\n            return Challenge()\n        options = view.min_raises()   # the most likely raise is always one of these\n        if not options:\n            return Challenge()\n        return max(options, key=lambda b: (self.prob_true(view, b), -b.quantity, -b.face))\n", "liars_dice/registry.py": "\"\"\"\nStrategy registry: the menu of strategies the web page (and scripts) can choose from.\n\nTo add a new strategy:\n  1. write a Player subclass (in players.py or its own module)\n  2. add an entry below with a label, short description, and any tunable parameters\n     (each parameter: default, min, max, step, help text). Student strategies get\n     student=True and description=SECRET.\n\"\"\"\nfrom __future__ import annotations\n\nfrom .students import BeckettM, BenG, IanW, JakeR, JonahR, LucyG, ShayG\nfrom .cross import CrossPlayer\nfrom .players import (\n    BluffingPlayer, HandReader, OwnDiceOnlyPlayer, Player, ProbabilisticPlayer, RandomPlayer,\n)\n\n# Student strategies are kept secret from the class for now: the page shows only this.\n# (Their real descriptions live in the class docstrings in students.py, which\n# build_web.py strips out of the web bundle.)\nSECRET = \"Secret strategy.\"\n\nSTRATEGIES: dict[str, dict] = {\n    \"random\": dict(\n        label=\"Random\",\n        cls=RandomPlayer,\n        uses_history=False,\n        description=\"Calls liar at random with a fixed probability; otherwise makes a small random raise.\",\n        params={\"challenge_prob\": (0.3, 0.0, 1.0, 0.05, \"Chance of calling liar on any turn\")},\n    ),\n    \"bluffer\": dict(\n        label=\"Bluffer\",\n        cls=BluffingPlayer,\n        uses_history=False,\n        description=\"Always raises on a random face, often jumping the quantity. Only calls liar when a bid is nearly impossible.\",\n        params={\"jump\": (2, 0, 5, 1, \"Max extra dice added on top of the minimum raise\")},\n    ),\n    \"own_dice\": dict(\n        label=\"Own Dice Only\",\n        cls=OwnDiceOnlyPlayer,\n        uses_history=False,\n        description=\"Counts its own matching dice plus the expected number among unseen dice. Calls liar if the bid is above that by more than the margin; otherwise bids the minimum raise on its most common face.\",\n        params={\"margin\": (0.5, -2.0, 4.0, 0.25, \"How far above the expected count a bid must be before calling liar\")},\n    ),\n    \"probabilistic\": dict(\n        label=\"Probabilistic\",\n        cls=ProbabilisticPlayer,\n        uses_history=False,\n        description=\"Works out the exact probability a bid is true from its own dice. Calls liar if that is below the threshold; otherwise makes the raise most likely to be true.\",\n        params={\"threshold\": (0.4, 0.05, 0.95, 0.05, \"Call liar when P(bid is true) is below this\")},\n    ),\n    \"hand_reader\": dict(\n        label=\"Hand Reader\",\n        cls=HandReader,\n        uses_history=True,\n        description=\"Like Probabilistic, but remembers which opponents usually bid faces they actually hold, and believes those players' bids.\",\n        params={\n            \"threshold\": (0.4, 0.05, 0.95, 0.05, \"Call liar when P(bid is true) is below this\"),\n            \"trust\": (0.6, 0.3, 0.95, 0.05, \"How often an opponent's bids must match their dice to be believed\"),\n        },\n    ),\n    \"cross\": dict(\n        label=\"Cross\",\n        cls=CrossPlayer,\n        uses_history=True,\n        secret=True,\n        description=SECRET,  # full description: CrossPlayer docstring in cross.py\n        params={},\n    ),\n    \"jake_r\": dict(\n        label=\"Jake R.\",\n        cls=JakeR,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: JakeR docstring in students.py\n        params={},\n    ),\n    \"ben_g\": dict(\n        label=\"Ben G.\",\n        cls=BenG,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: BenG docstring in students.py\n        params={},\n    ),\n    \"jonah_r\": dict(\n        label=\"Jonah R.\",\n        cls=JonahR,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: JonahR docstring in students.py\n        params={},\n    ),\n    \"beckett_m\": dict(\n        label=\"Beckett M.\",\n        cls=BeckettM,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: BeckettM docstring in students.py\n        params={},\n    ),\n    \"shay_g\": dict(\n        label=\"Shay G.\",\n        cls=ShayG,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: ShayG docstring in students.py\n        params={},\n    ),\n    \"lucy_g\": dict(\n        label=\"Lucy G.\",\n        cls=LucyG,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: LucyG docstring in students.py\n        params={},\n    ),\n    \"ian_w\": dict(\n        label=\"Ian W.\",\n        cls=IanW,\n        uses_history=False,\n        student=True,\n        description=SECRET,  # full description: IanW docstring in students.py\n        params={},\n    ),\n}\n\n\ndef make_player(key: str, name: str, params: dict | None = None, seed: int | None = None) -> Player:\n    spec = STRATEGIES[key]\n    kwargs = {k: v[0] for k, v in spec[\"params\"].items()}\n    for k, v in (params or {}).items():\n        if k in kwargs:\n            kwargs[k] = type(kwargs[k])(v)\n    return spec[\"cls\"](name, seed=seed, **kwargs)\n\n\ndef registry_for_ui() -> list[dict]:\n    return [\n        dict(key=k, label=s[\"label\"], description=s[\"description\"],\n             uses_history=s[\"uses_history\"] and not s.get(\"secret\", s.get(\"student\", False)),\n             student=s.get(\"student\", False),\n             secret=s.get(\"secret\", s.get(\"student\", False)),\n             params=[dict(name=p, default=d, min=lo, max=hi, step=st, help=h)\n                     for p, (d, lo, hi, st, h) in s[\"params\"].items()])\n        for k, s in STRATEGIES.items()\n    ]\n", "liars_dice/students.py": "from __future__ import annotations\nfrom math import comb\nfrom .core import Bid, Challenge\nfrom .players import Player\nfrom .view import PlayerView, binom_tail\n\ndef dbinom(k: int, n: int, p: float) -> float:\n    if k < 0 or k > n:\n        return 0.0\n    return comb(n, k) * p ** k * (1 - p) ** (n - k)\n\nclass JakeR(Player):\n    at_least = True\n\n    def describe(self):\n        return 'JakeR' if self.at_least else 'JakeR (dbinom)'\n\n    def p_bid_ok(self, view: PlayerView, bid: Bid) -> float:\n        k = bid.quantity - view.my_count(bid.face) - 1\n        if k < 0:\n            return 1.0\n        n = view.unknown_dice - 1\n        p = view.config.p_match(bid.face)\n        return binom_tail(k, n, p) if self.at_least else dbinom(k, n, p)\n\n    def backup_bid(self, view: PlayerView):\n        faces = list(view.config.biddable_faces())\n        best = max(faces, key=lambda f: (view.my_count(f), f))\n        return view.min_raise(best)\n\n    def decide(self, view):\n        last = view.last_bid\n        n_players = len(view.seating)\n        if last is not None and self.p_bid_ok(view, last) < 1 / n_players:\n            return Challenge()\n        if last is not None and view.my_count(last.face) >= 1:\n            bid = Bid(last.quantity + 1, last.face)\n            if view.is_legal(bid):\n                return bid\n        bid = self.backup_bid(view)\n        if bid is None:\n            return Challenge() if last is not None else view.legal_bids()[0]\n        if n_players == 2 and last is not None and (view.prob_at_least(bid) < 1 / 3):\n            return Challenge()\n        return bid\n\nclass BenG(Player):\n\n    def describe(self):\n        return 'BenG'\n\n    def most_common_face(self, view: PlayerView) -> int:\n        faces = list(view.config.biddable_faces())\n        return max(faces, key=lambda f: (view.my_count(f), -f))\n\n    def strong_hand_bid(self, view: PlayerView):\n        face = self.most_common_face(view)\n        mine = view.my_count(face)\n        if mine / len(view.my_dice) <= 0.75:\n            return None\n        expected = int(view.unknown_dice * view.config.p_match(face))\n        return Bid(mine + expected, face)\n\n    def decide(self, view):\n        last = view.last_bid\n        bid = self.strong_hand_bid(view)\n        if bid is not None and view.is_legal(bid):\n            return bid\n        if last is not None:\n            cutoff = 0.5 if view.total_dice >= 5 else 0.7\n            if view.prob_at_least(last) < cutoff:\n                return Challenge()\n        face = self.most_common_face(view)\n        bid = Bid((last.quantity if last else 0) + 1, face)\n        if view.is_legal(bid):\n            return bid\n        return Challenge() if last is not None else view.legal_bids()[0]\n\nclass JonahR(Player):\n\n    def describe(self):\n        return 'JonahR'\n\n    def decide(self, view):\n        options = view.min_raises()\n        if not options:\n            return Challenge()\n        best = max(options, key=lambda b: (round(view.prob_at_least(b), 9), -b.quantity, -b.face))\n        if view.last_bid is not None and view.prob_at_least(best) < 0.4:\n            return Challenge()\n        return best\n\nclass BeckettM(Player):\n\n    def describe(self):\n        return 'BeckettM'\n\n    def decide(self, view):\n        options = view.min_raises()\n        if not options:\n            return Challenge()\n        top = max((view.my_count(b.face) for b in options))\n        tied = [b for b in options if view.my_count(b.face) == top]\n        bid = max(tied, key=lambda b: (round(view.prob_at_least(b), 9), -b.face))\n        if view.last_bid is not None and view.prob_at_least(bid) < 0.35:\n            return Challenge()\n        return bid\n\nclass ShayG(Player):\n\n    def describe(self):\n        return 'ShayG'\n\n    def next_bid(self, view: PlayerView):\n        faces = list(view.config.biddable_faces())\n        last = view.last_bid\n        if last is None:\n            return Bid(1, faces[0])\n        higher = [f for f in faces if f > last.face]\n        bid = Bid(last.quantity, higher[0]) if higher else Bid(last.quantity + 1, faces[0])\n        return bid if bid.quantity <= view.total_dice else None\n\n    def decide(self, view):\n        last = view.last_bid\n        original = len(view.all_players) * view.config.dice_per_player\n        late = view.total_dice <= 0.6 * original\n        if late and last is not None and (view.prob_at_least(last) < 1 / 3):\n            return Challenge()\n        bid = self.next_bid(view)\n        return bid if bid is not None else Challenge()\n\nclass LucyG(Player):\n\n    def describe(self):\n        return 'LucyG'\n\n    def strong_value(self, view: PlayerView):\n        faces = list(view.config.biddable_faces())\n        best = max(faces, key=lambda f: (view.my_count(f), f))\n        return best if view.my_count(best) / len(view.my_dice) > 0.6 else None\n\n    def bid_on(self, view: PlayerView, face: int, floor: int=1):\n        b = view.min_raise(face)\n        if b is None:\n            return None\n        b = Bid(max(b.quantity, floor), face)\n        return b if b.quantity <= view.total_dice else None\n\n    def decide(self, view):\n        last = view.last_bid\n        faces = list(view.config.biddable_faces())\n        if last is not None and view.prob_at_least(last) < 1 / 3:\n            return Challenge()\n        opp = view.opponents()\n        if len(opp) == 1 and len(view.my_dice) == 2 and (view.dice_count(opp[0]) == 1):\n            bluffs = [b for f in faces if view.my_count(f) == 0 for b in [self.bid_on(view, f)] if b is not None]\n            if bluffs:\n                return min(bluffs, key=lambda b: (b.quantity, b.face))\n        a = self.strong_value(view)\n        if last is None:\n            if a is not None:\n                bid = self.bid_on(view, a, floor=view.my_count(a))\n            else:\n                face = max(faces, key=lambda f: (view.my_count(f), f))\n                bid = Bid(1, face)\n        elif a is not None and a != last.face:\n            bid = self.bid_on(view, a, floor=view.my_count(a))\n        else:\n            bid = Bid(last.quantity + 1, last.face)\n            if not view.is_legal(bid):\n                bid = None\n        if bid is None:\n            return Challenge() if last is not None else view.legal_bids()[0]\n        return bid\n\nclass IanW(Player):\n\n    def describe(self):\n        return 'IanW'\n\n    def decide(self, view):\n        last = view.last_bid\n        if last is None:\n            faces = list(view.config.biddable_faces())\n            return Bid(1, max(faces, key=lambda f: (view.my_count(f), f)))\n        up_q = Bid(last.quantity + 1, last.face)\n        if 1 - view.prob_at_least(last) > 0.5:\n            return Challenge()\n        if view.prob_at_least(up_q) < 0.5:\n            return Challenge()\n        others = len(view.opponents())\n        if others > 1 and up_q.quantity > 0.4 * view.total_dice and (last.face < view.config.faces):\n            bid = Bid(last.quantity, last.face + 1)\n        else:\n            bid = up_q\n        return bid if view.is_legal(bid) else Challenge()", "liars_dice/tournament.py": "\"\"\"\nRun many games, shuffle seating each time, collect stats and (optionally) keep histories.\nStats are accumulated as games finish, so long tournaments don't need to keep every record.\n\"\"\"\nfrom __future__ import annotations\n\nimport json\nimport random\nfrom collections import Counter, defaultdict\nfrom dataclasses import dataclass, field\nfrom typing import Callable, Optional, Sequence\n\nfrom .core import GameConfig, GameRecord\nfrom .game import Game\nfrom .players import Player\n\n\n@dataclass\nclass TournamentResult:\n    keep_games: bool = True\n    games: list[GameRecord] = field(default_factory=list)\n    n_games: int = 0\n    total_rounds: int = 0\n    strategies: dict[str, str] = field(default_factory=dict)\n    _stats: dict = field(default_factory=lambda: defaultdict(Counter))\n\n    def add(self, g: GameRecord) -> None:\n        self.n_games += 1\n        self.total_rounds += len(g.rounds)\n        self.strategies.update(g.strategies)\n        if self.keep_games:\n            self.games.append(g)\n        s = self._stats\n        s[g.winner][\"wins\"] += 1\n        for r in g.rounds:\n            res = r.result\n            s[res.challenger][\"challenges\"] += 1\n            s[res.challenger][\"good_challenges\"] += (not res.bid_was_true)\n            s[res.bidder][\"bids_challenged\"] += 1\n            s[res.bidder][\"caught_bluffing\"] += (not res.bid_was_true)\n            for b in r.bids:\n                s[b.player][\"bids\"] += 1\n            s[res.loser][\"dice_lost\"] += 1\n        order = [g.winner] + list(reversed(g.elimination_order))   # 1st, 2nd, ...\n        for place, p in enumerate(order, 1):\n            s[p][\"place_sum\"] += place\n        for p in g.players:\n            s[p][\"games\"] += 1\n\n    def win_counts(self) -> Counter:\n        return Counter({p: x[\"wins\"] for p, x in self._stats.items()})\n\n    def table(self) -> list[dict]:\n        \"\"\"One row per player, sorted by wins.\"\"\"\n        rows = []\n        for p, x in self._stats.items():\n            rows.append(dict(\n                player=p,\n                strategy=self.strategies.get(p, \"\"),\n                games=x[\"games\"],\n                wins=x[\"wins\"],\n                win_pct=100 * x[\"wins\"] / max(x[\"games\"], 1),\n                avg_place=x[\"place_sum\"] / max(x[\"games\"], 1),\n                challenges=x[\"challenges\"],\n                challenge_success_pct=100 * x[\"good_challenges\"] / max(x[\"challenges\"], 1),\n                bids=x[\"bids\"],\n                bids_challenged=x[\"bids_challenged\"],\n                caught_pct=100 * x[\"caught_bluffing\"] / max(x[\"bids_challenged\"], 1),\n            ))\n        return sorted(rows, key=lambda r: (-r[\"wins\"], r[\"avg_place\"]))\n\n    def summary(self) -> str:\n        lines = [f\"{self.n_games} games, {self.total_rounds / max(self.n_games, 1):.1f} rounds/game\",\n                 f\"{'player':<10}{'strategy':<38}{'win%':>7}{'avg place':>11}\"\n                 f\"{'chal ok%':>10}{'caught%':>9}\"]\n        for r in self.table():\n            lines.append(\n                f\"{r['player']:<10}{r['strategy']:<38}{r['win_pct']:>6.1f}%{r['avg_place']:>11.2f}\"\n                f\"{r['challenge_success_pct']:>9.1f}%{r['caught_pct']:>8.1f}%\"\n            )\n        return \"\\n\".join(lines)\n\n    def save_json(self, path: str) -> None:\n        if not self.keep_games:\n            raise ValueError(\"Tournament was run with keep_games=False\")\n        with open(path, \"w\") as f:\n            json.dump([g.to_dict() for g in self.games], f)\n\n\ndef run_tournament(\n    make_players: Callable[[], Sequence[Player]],\n    n_games: int = 1000,\n    config: GameConfig = GameConfig(),\n    seed: Optional[int] = None,\n    shuffle_seats: bool = True,\n    keep_games: bool = True,\n) -> TournamentResult:\n    \"\"\"\n    `make_players` is called once; the same Player objects persist across games, so a\n    strategy that learns (via round_finished / new_game) keeps its memory between games.\n    \"\"\"\n    rng = random.Random(seed)\n    players = list(make_players())\n    result = TournamentResult(keep_games=keep_games)\n    for i in range(n_games):\n        if shuffle_seats:\n            rng.shuffle(players)\n        game = Game(players, config=config, seed=rng.randrange(2**31), game_id=i)\n        result.add(game.play())\n    return result\n", "liars_dice/view.py": "\"\"\"\nPlayerView: everything a player is allowed to know when it's their turn.\n\nThis is the only thing a strategy receives, so it's impossible for a strategy to peek\nat opponents' dice in the current round. Past rounds are fully visible (dice are\nrevealed at each challenge), as in the real game.\n\"\"\"\nfrom __future__ import annotations\n\nfrom dataclasses import dataclass\nfrom functools import cached_property, lru_cache\nfrom math import comb\nfrom typing import Optional\n\nfrom .core import Bid, BidEvent, GameConfig, RoundRecord\n\n\n@lru_cache(maxsize=None)\ndef binom_tail(need: int, n: int, p: float) -> float:\n    \"\"\"P(X >= need) for X ~ Binomial(n, p).\"\"\"\n    if need <= 0:\n        return 1.0\n    if need > n:\n        return 0.0\n    return sum(comb(n, k) * p**k * (1 - p) ** (n - k) for k in range(need, n + 1))\n\n\n@dataclass(frozen=True)\nclass PlayerView:\n    me: str\n    my_dice: tuple[int, ...]\n    config: GameConfig\n    round_number: int\n    seating: tuple[str, ...]                 # active players this round, starter first\n    dice_counts: tuple[tuple[str, int], ...] # (player, dice) for active players\n    current_bids: tuple[BidEvent, ...]       # bids so far this round, in order\n    past_rounds: tuple[RoundRecord, ...]     # every completed round of this game\n    all_players: tuple[str, ...]             # initial seating, including eliminated players\n\n    # ------------------------------------------------------------------ basics\n    @property\n    def last_bid(self) -> Optional[Bid]:\n        return self.current_bids[-1].bid if self.current_bids else None\n\n    @property\n    def last_bidder(self) -> Optional[str]:\n        return self.current_bids[-1].player if self.current_bids else None\n\n    @property\n    def can_challenge(self) -> bool:\n        return bool(self.current_bids)\n\n    @cached_property\n    def total_dice(self) -> int:\n        return sum(n for _, n in self.dice_counts)\n\n    @property\n    def unknown_dice(self) -> int:\n        return self.total_dice - len(self.my_dice)\n\n    def dice_count(self, player: str) -> int:\n        return dict(self.dice_counts).get(player, 0)\n\n    def opponents(self) -> tuple[str, ...]:\n        return tuple(p for p in self.seating if p != self.me)\n\n    def next_player(self) -> str:\n        i = self.seating.index(self.me)\n        return self.seating[(i + 1) % len(self.seating)]\n\n    # ------------------------------------------------------------------ own dice\n    @cached_property\n    def _my_counts(self) -> dict[int, int]:\n        return {f: sum(self.config.matches(d, f) for d in self.my_dice)\n                for f in range(1, self.config.faces + 1)}\n\n    def my_count(self, face: int) -> int:\n        return self._my_counts[face]\n\n    # ------------------------------------------------------------------ bids\n    def is_legal(self, bid: Bid) -> bool:\n        return (\n            bid.face in self.config.biddable_faces()\n            and 1 <= bid.quantity <= self.total_dice\n            and bid.beats(self.last_bid)\n        )\n\n    def legal_bids(self, max_quantity: Optional[int] = None) -> list[Bid]:\n        \"\"\"All legal raises (optionally capped at max_quantity), lowest first.\"\"\"\n        cap = min(max_quantity or self.total_dice, self.total_dice)\n        last = self.last_bid\n        lq, lf = (last.quantity, last.face) if last else (0, 0)\n        faces = self.config.biddable_faces()\n        return [Bid(q, f) for q in range(max(lq, 1), cap + 1) for f in faces\n                if (q, f) > (lq, lf)]\n\n    def min_raises(self) -> list[Bid]:\n        \"\"\"\n        The smallest legal bid on each biddable face (at most one per face).\n        For a \"safest bid\" search these are the only candidates that matter:\n        raising the quantity on a face can only make a bid less likely.\n        \"\"\"\n        last = self.last_bid\n        out = []\n        for f in self.config.biddable_faces():\n            if last is None:\n                q = 1\n            else:\n                q = last.quantity if f > last.face else last.quantity + 1\n            if q <= self.total_dice:\n                out.append(Bid(q, f))\n        return out\n\n    def min_raise(self, face: int) -> Optional[Bid]:\n        \"\"\"Smallest legal bid on a given face, or None if impossible.\"\"\"\n        for q in range(1, self.total_dice + 1):\n            b = Bid(q, face)\n            if self.is_legal(b):\n                return b\n        return None\n\n    # ------------------------------------------------------------------ probability\n    def prob_at_least(self, bid: Bid) -> float:\n        \"\"\"\n        P(bid is true) using ONLY my own dice and the assumption that every unseen die\n        is uniformly random. (A history-aware strategy would replace this.)\n        \"\"\"\n        return binom_tail(bid.quantity - self.my_count(bid.face),\n                          self.unknown_dice, self.config.p_match(bid.face))\n\n    def expected_count(self, face: int) -> float:\n        return self.my_count(face) + self.unknown_dice * self.config.p_match(face)\n", "liars_dice/web_api.py": "\"\"\"\nThin JSON bridge used by the web page (via Pyodide). Every function takes and returns\nJSON strings so the JavaScript side never touches Python objects directly.\n\nspec JSON:\n{\n  \"players\": [{\"name\": \"Pam\", \"strategy\": \"probabilistic\", \"params\": {\"threshold\": 0.4}}, ...],\n  \"config\":  {\"dice_per_player\": 5, \"ones_wild\": true},\n  \"seed\": 42\n}\n\"\"\"\nfrom __future__ import annotations\n\nimport json\nimport random\nfrom dataclasses import asdict\n\nfrom .core import GameConfig\nfrom .game import Game\nfrom .registry import make_player, registry_for_ui\nfrom .tournament import TournamentResult\n\n\ndef _build(spec: dict):\n    cfg = GameConfig(**spec.get(\"config\", {}))\n    seed = spec.get(\"seed\")\n    rng = random.Random(seed)\n    players = [make_player(p[\"strategy\"], p[\"name\"], p.get(\"params\"), seed=rng.randrange(2**31))\n               for p in spec[\"players\"]]\n    return cfg, players, rng\n\n\ndef strategies() -> str:\n    return json.dumps(registry_for_ui())\n\n\ndef play_one(spec_json: str) -> str:\n    \"\"\"Play a single game and return its full history.\"\"\"\n    spec = json.loads(spec_json)\n    cfg, players, rng = _build(spec)\n    rng.shuffle(players)\n    rec = Game(players, config=cfg, seed=rng.randrange(2**31)).play()\n    out = asdict(rec)\n    out[\"strategy_keys\"] = {p[\"name\"]: p[\"strategy\"] for p in spec[\"players\"]}\n    return json.dumps(out)\n\n\nclass TournamentSession:\n    \"\"\"Runs a tournament in chunks so the page can show progress.\"\"\"\n\n    def __init__(self, spec_json: str):\n        spec = json.loads(spec_json)\n        self.cfg, self.players, self.rng = _build(spec)\n        self.keys = {p[\"name\"]: p[\"strategy\"] for p in spec[\"players\"]}\n        self.result = TournamentResult(keep_games=False)\n        self.game_id = 0\n\n    def run_chunk(self, k: int) -> int:\n        for _ in range(k):\n            self.rng.shuffle(self.players)\n            g = Game(self.players, config=self.cfg, seed=self.rng.randrange(2**31),\n                     game_id=self.game_id)\n            self.result.add(g.play())\n            self.game_id += 1\n        return self.game_id\n\n    def results(self) -> str:\n        r = self.result\n        return json.dumps(dict(\n            n_games=r.n_games,\n            avg_rounds=r.total_rounds / max(r.n_games, 1),\n            table=[dict(row, strategy_key=self.keys.get(row[\"player\"])) for row in r.table()],\n        ))\n"}</script>
+<script src="pyodide/pyodide.js"></script>
+<script src="pyodide/python_stdlib.js"></script>
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  let py = null, api = null, STRATS = [], STRAT_BY_KEY = {};
+  let running = false, stopRequested = false;
+
+  // ---------------------------------------------------------------- tabs
+  const TABS = ['tournament', 'watch', 'strategies', 'assignment'];
+  $$('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
+  function showTab(name, setHash) {
+    if (!TABS.includes(name)) name = 'tournament';
+    $$('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+    $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
+    if (setHash) { try { history.replaceState(null, '', '#' + name); } catch (e) { location.hash = name; } }
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a.tablink');
+    if (a) { e.preventDefault(); showTab(a.dataset.goto, true); }
+  });
+  document.addEventListener('click', e => {
+    const j = e.target.closest('a.jump');
+    if (j) { e.preventDefault(); document.querySelector(j.getAttribute('href'))?.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+  });
+  window.addEventListener('hashchange', () => showTab(location.hash.slice(1)));
+  if (location.hash) showTab(location.hash.slice(1));
+
+  // ---------------------------------------------------------------- assignment form
+  const FORM_KEY = 'ld-assignment';
+  const form = document.getElementById('assignForm');
+  try {
+    const saved = JSON.parse(localStorage.getItem(FORM_KEY) || '{}');
+    Object.entries(saved).forEach(([k, v]) => { if (form.elements[k]) form.elements[k].value = v; });
+  } catch (e) {}
+  form.addEventListener('input', () => {
+    const data = {};
+    [...form.elements].forEach(el => { if (el.name) data[el.name] = el.value; });
+    try { localStorage.setItem(FORM_KEY, JSON.stringify(data)); } catch (e) {}
+  });
+  form.addEventListener('submit', e => e.preventDefault());
+  function answersText() {
+    const lines = [];
+    const v = n => (form.elements[n].value || '').trim() || '(not answered)';
+    lines.push("LIAR'S DICE STRATEGY", '', 'Name: ' + v('name'), 'Bot name: ' + v('bot'), '');
+    [['s_open', 'Opening bid'], ['s_call', 'When to call liar'], ['s_raise', 'How to raise'], ['s_ties', 'Ties'],
+     ['s_stuck', "When my preferred raise isn't allowed"], ['s_change', 'Changes with players or dice left'],
+     ['s_bids', "Using other players' bids"], ['s_hist', 'Learning from past rounds'], ['s_bluff', 'Bluffing'],
+     ['s_other', 'Anything else']].forEach(([k, t]) => lines.push(t + ': ' + v(k)));
+    return lines.join('\n');
+  }
+  document.getElementById('copyAnswers').addEventListener('click', async () => {
+    const text = answersText();
+    const msg = document.getElementById('copyMsg'), fb = document.getElementById('copyFallback');
+    try {
+      await navigator.clipboard.writeText(text);
+      msg.textContent = 'Copied! Paste it into an email or your class page.';
+      fb.style.display = 'none';
+    } catch (e) {
+      fb.value = text; fb.style.display = 'block'; fb.focus(); fb.select();
+      msg.textContent = "Couldn't copy automatically. The text is selected below: press Ctrl+C (or ⌘+C) to copy it.";
+    }
+  });
+  document.getElementById('clearAnswers').addEventListener('click', () => {
+    const msg = document.getElementById('copyMsg');
+    if (msg.dataset.confirm !== '1') { msg.textContent = 'Press "Clear form" again to erase all your answers.'; msg.dataset.confirm = '1'; return; }
+    form.reset(); msg.dataset.confirm = ''; msg.textContent = 'Form cleared.';
+    try { localStorage.removeItem(FORM_KEY); } catch (e) {}
+  });
+
+  function setStatus(text, cls) {
+    $('#statusText').textContent = text;
+    $('#status').className = 'status ' + (cls || '');
+  }
+
+  // ---------------------------------------------------------------- roster
+  const NAMES = ['Ava','Ben','Cleo','Dev','Eli','Fay','Gus','Hana','Ivy','Jon'];
+  let roster = [];
+  const DEFAULT_ROSTER = [
+    {name: 'Rita', strategy: 'random'},
+    {name: 'Bob', strategy: 'bluffer'},
+    {name: 'Otto', strategy: 'own_dice'},
+    {name: 'Pam', strategy: 'probabilistic'},
+    {name: 'Hana', strategy: 'hand_reader'},
+  ];
+
+  function save() {
+    try { localStorage.setItem('ld-lab', JSON.stringify({roster, dice: $('#dice').value, wild: $('#wild').checked, n: $('#ngames').value, seed: $('#seed').value})); } catch (e) {}
+  }
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem('ld-lab') || 'null');
+      if (s && Array.isArray(s.roster) && s.roster.length >= 2) {
+        roster = s.roster.filter(p => STRAT_BY_KEY[p.strategy]);
+        $('#dice').value = s.dice || '5'; $('#wild').checked = s.wild !== false;
+        $('#ngames').value = s.n || '500'; $('#seed').value = s.seed || '42';
+      }
+    } catch (e) {}
+    if (roster.length < 2) roster = DEFAULT_ROSTER.map(p => ({...p, params: defaults(p.strategy)}));
+  }
+  function defaults(key) {
+    const o = {}; (STRAT_BY_KEY[key]?.params || []).forEach(p => o[p.name] = p.default); return o;
+  }
+
+  function renderRoster() {
+    const box = $('#players');
+    box.innerHTML = '';
+    roster.forEach((p, i) => {
+      const s = STRAT_BY_KEY[p.strategy];
+      const el = document.createElement('div');
+      el.className = 'player';
+      el.innerHTML = `
+        <div class="top">
+          <input type="text" value="${esc(p.name)}" maxlength="14" aria-label="Player name">
+          <select aria-label="Strategy">${strategyOptions(p.strategy)}</select>
+          <button class="btn ghost" title="Remove player" ${roster.length <= 2 ? 'disabled' : ''}>✕</button>
+        </div>
+        <div class="small muted" style="margin-top:6px">${s.secret ? '🔒 ' : ''}${esc(s.description)}${s.uses_history ? '<span class="hist-badge">uses history</span>' : ''}</div>
+        ${s.params.map(pr => `
+          <div class="param" title="${esc(pr.help)}">
+            <div class="lbl"><span>${esc(pr.help)}</span><b>${fmt(p.params[pr.name] ?? pr.default)}</b></div>
+            <input type="range" min="${pr.min}" max="${pr.max}" step="${pr.step}" value="${p.params[pr.name] ?? pr.default}" data-param="${pr.name}">
+          </div>`).join('')}`;
+      const [nameIn, sel, rm] = [$('input[type=text]', el), $('select', el), $('button', el)];
+      nameIn.addEventListener('change', () => {
+        let v = nameIn.value.trim() || NAMES[i % NAMES.length];
+        while (roster.some((q, j) => j !== i && q.name === v)) v += '′';
+        p.name = v; nameIn.value = v; save();
+      });
+      sel.addEventListener('change', () => { p.strategy = sel.value; p.params = defaults(sel.value); renderRoster(); save(); });
+      rm.addEventListener('click', () => { roster.splice(i, 1); renderRoster(); save(); });
+      $$('input[type=range]', el).forEach(r => r.addEventListener('input', () => {
+        p.params[r.dataset.param] = parseFloat(r.value);
+        r.previousElementSibling.querySelector('b').textContent = fmt(r.value);
+        save();
+      }));
+      box.appendChild(el);
+    });
+    $('#addPlayer').disabled = roster.length >= 8;
+    $$('#studentAdd button').forEach(b => b.disabled = roster.length >= 8);
+    $('#playerCount').textContent = `${roster.length} players (2–8) · ★ = uses history`;
+  }
+  function strategyOptions(selected) {
+    const opt = x => `<option value="${x.key}" ${x.key === selected ? 'selected' : ''}>${esc(x.label)}${x.uses_history ? ' ★' : ''}</option>`;
+    const comp = STRATS.filter(x => !x.student), stud = STRATS.filter(x => x.student);
+    return `<optgroup label="Computer strategies">${comp.map(opt).join('')}</optgroup>` +
+           (stud.length ? `<optgroup label="Student strategies">${stud.map(opt).join('')}</optgroup>` : '');
+  }
+  function renderStudentButtons() {
+    const stud = STRATS.filter(x => x.student);
+    $('#studentAdd').innerHTML = stud.length ? `<span class="muted small">Add a student:</span>` +
+      stud.map(x => `<button class="btn" data-key="${x.key}">+ ${esc(x.label)}</button>`).join('') : '';
+    $$('#studentAdd button').forEach(b => b.addEventListener('click', () => {
+      if (roster.length >= 8) return;
+      const s = STRAT_BY_KEY[b.dataset.key];
+      let name = s.label;
+      while (roster.some(p => p.name === name)) name += '′';
+      roster.push({name, strategy: s.key, params: defaults(s.key)});
+      renderRoster(); save();
+    }));
+  }
+  const fmt = v => { const n = parseFloat(v); return Number.isInteger(n) ? String(n) : n.toFixed(2); };
+
+  $('#addPlayer').addEventListener('click', () => {
+    const name = NAMES.find(n => !roster.some(p => p.name === n)) || ('P' + (roster.length + 1));
+    roster.push({name, strategy: 'probabilistic', params: defaults('probabilistic')});
+    renderRoster(); save();
+  });
+  ['#dice', '#wild', '#ngames', '#seed'].forEach(s => $(s).addEventListener('change', save));
+  $('#reseed').addEventListener('click', () => { $('#seed').value = Math.floor(Math.random() * 100000); save(); });
+
+  function spec(seed) {
+    return JSON.stringify({
+      players: roster.map(p => ({name: p.name, strategy: p.strategy, params: p.params})),
+      config: {dice_per_player: parseInt($('#dice').value), ones_wild: $('#wild').checked},
+      seed: seed,
+    });
+  }
+
+  // ---------------------------------------------------------------- tournament
+  $('#runBtn').addEventListener('click', runTournament);
+  $('#stopBtn').addEventListener('click', () => { stopRequested = true; });
+
+  async function runTournament() {
+    if (running) return;
+    running = true; stopRequested = false;
+    $('#err').textContent = '';
+    $('#runBtn').disabled = true; $('#stopBtn').style.display = '';
+    const prog = $('#progress'); prog.classList.add('on');
+    const n = parseInt($('#ngames').value);
+    const seed = parseInt($('#seed').value) || 0;
+    let session;
+    try {
+      session = api.TournamentSession(spec(seed));
+      const t0 = performance.now();
+      let done = 0, chunk = 10;
+      while (done < n && !stopRequested) {
+        const k = Math.min(chunk, n - done);
+        const ts = performance.now();
+        done = session.run_chunk(k);
+        const dt = performance.now() - ts;
+        chunk = Math.max(5, Math.min(200, Math.round(k * 120 / Math.max(dt, 1))));  // aim ~120ms/chunk
+        prog.firstElementChild.style.width = (100 * done / n) + '%';
+        setStatus(`Running… ${done} / ${n} games`, '');
+        if (done % 50 < k || done === n) showResults(JSON.parse(session.results()), done < n);
+        await new Promise(r => setTimeout(r, 0));
+      }
+      const res = JSON.parse(session.results());
+      showResults(res, false);
+      setStatus(`Done: ${res.n_games} games in ${((performance.now() - t0) / 1000).toFixed(1)}s`, 'ready');
+    } catch (e) {
+      $('#err').textContent = 'Something went wrong:\n' + e.message;
+      setStatus('Error', 'error');
+    } finally {
+      if (session) session.destroy();
+      running = false;
+      $('#runBtn').disabled = false; $('#stopBtn').style.display = 'none';
+      setTimeout(() => prog.classList.remove('on'), 600);
+    }
+  }
+
+  function showResults(res, partial) {
+    $('#resultsEmpty').style.display = 'none';
+    $('#resultsBody').style.display = '';
+    const t = res.table;
+    $('#resultsTitle').textContent = 'Win rate by player';
+    const evenShare = 100 / t.length;
+    $('#resultsSub').textContent = `${res.n_games.toLocaleString()} games${partial ? ' so far…' : ''} · ${res.avg_rounds.toFixed(1)} rounds per game on average · dashed line = ${evenShare.toFixed(0)}% (what everyone would get if all players were equally good)`;
+    const max = Math.max(evenShare, ...t.map(r => r.win_pct)) * 1.12;
+    $('#chart').innerHTML = t.map(r => `
+      <div class="bar-row">
+        <div class="who">${esc(r.player)}<span>${esc(STRAT_BY_KEY[r.strategy_key]?.label || r.strategy)}</span></div>
+        <div class="bar-track" data-tip="${esc(`<b>${r.player}</b> · ${r.strategy}<br>Won ${r.wins} of ${r.games} games (${r.win_pct.toFixed(1)}%)<br>Average place ${r.avg_place.toFixed(2)}`)}">
+          <div class="gridline" style="left:${100 * evenShare / max}%"></div>
+          <div class="bar" style="width:${100 * r.win_pct / max}%"></div>
+          <span class="bar-val" style="left:${100 * r.win_pct / max}%">${r.win_pct.toFixed(1)}%</span>
+        </div>
+      </div>`).join('');
+    $$('#chart .bar-track').forEach(el => attachTip(el, el.dataset.tip));
+    $('#resultsTable').innerHTML = `
+      <thead><tr><th>Player</th><th>Strategy</th><th>Win %</th><th>Avg place</th><th>Calls right</th><th>Caught lying</th><th>Bids per call</th></tr></thead>
+      <tbody>${t.map(r => `<tr>
+        <td><b>${esc(r.player)}</b></td><td class="small">${esc(r.strategy)}</td>
+        <td class="num">${r.win_pct.toFixed(1)}%</td>
+        <td class="num">${r.avg_place.toFixed(2)}</td>
+        <td class="num">${r.challenges ? r.challenge_success_pct.toFixed(0) + '%' : '—'}</td>
+        <td class="num">${r.bids_challenged ? r.caught_pct.toFixed(0) + '%' : '—'}</td>
+        <td class="num">${r.challenges ? (r.bids / r.challenges).toFixed(1) : '—'}</td>
+      </tr>`).join('')}</tbody>`;
+  }
+
+  const tip = $('#tooltip');
+  function attachTip(el, html) {
+    el.addEventListener('mousemove', e => {
+      tip.innerHTML = html; tip.style.display = 'block';
+      const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+      tip.style.left = x + 'px'; tip.style.top = (e.clientY + 14) + 'px';
+    });
+    el.addEventListener('mouseleave', () => tip.style.display = 'none');
+  }
+
+  // ---------------------------------------------------------------- watch a game
+  let game = null, steps = [], stepIdx = 0, autoTimer = null;
+
+  $('#watchBtn').addEventListener('click', () => { newGame(); showTab('watch', true); });
+  $('#newGame').addEventListener('click', newGame);
+
+  function newGame() {
+    stopAuto();
+    try {
+      game = JSON.parse(api.play_one(spec(Math.floor(Math.random() * 1e9))));
+    } catch (e) { $('#err').textContent = e.message; return; }
+    // Build a flat list of steps: round start, each bid, the call/reveal
+    steps = [];
+    game.rounds.forEach((r, ri) => {
+      steps.push({ri, kind: 'start'});
+      r.bids.forEach((b, bi) => steps.push({ri, kind: 'bid', bi}));
+      steps.push({ri, kind: 'call'});
+    });
+    stepIdx = 0;
+    renderLog();
+    renderStep();
+  }
+
+  function stopAuto() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; $('#autoplay').textContent = 'Auto-play'; } }
+  $('#autoplay').addEventListener('click', () => {
+    if (autoTimer) return stopAuto();
+    if (!game) return;
+    $('#autoplay').textContent = 'Pause';
+    autoTimer = setInterval(() => { if (stepIdx >= steps.length - 1) stopAuto(); else { stepIdx++; renderStep(); } }, 900);
+  });
+  $('#nextStep').addEventListener('click', () => { if (game && stepIdx < steps.length - 1) { stepIdx++; renderStep(); } });
+  $('#prevStep').addEventListener('click', () => { if (game && stepIdx > 0) { stepIdx--; renderStep(); } });
+  $('#nextRound').addEventListener('click', () => { if (!game) return; const r = steps[stepIdx].ri; const j = steps.findIndex(s => s.ri === r + 1); stepIdx = j >= 0 ? j : steps.length - 1; renderStep(); });
+  $('#prevRound').addEventListener('click', () => { if (!game) return; const s = steps[stepIdx]; const tgt = s.kind === 'start' ? s.ri - 1 : s.ri; const j = steps.findIndex(x => x.ri === Math.max(0, tgt)); stepIdx = Math.max(0, j); renderStep(); });
+  $('#showDice').addEventListener('change', () => game && renderStep());
+  document.addEventListener('keydown', e => {
+    if (!$('#tab-watch').classList.contains('active') || e.target.matches('input, select')) return;
+    if (e.key === 'ArrowRight') $('#nextStep').click();
+    if (e.key === 'ArrowLeft') $('#prevStep').click();
+  });
+
+  const PIPS = {1: [5], 2: [3, 7], 3: [3, 5, 7], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9]};
+  function dieHTML(v, cls = '') {
+    const cells = Array.from({length: 9}, (_, i) => PIPS[v]?.includes(i + 1) ? '<i></i>' : '<span></span>').join('');
+    return `<div class="die ${cls}" aria-label="${v}">${cells}</div>`;
+  }
+
+  function strategyLabel(name) { return STRAT_BY_KEY[game.strategy_keys[name]]?.label || game.strategies[name] || ''; }
+
+  function renderStep() {
+    const s = steps[stepIdx];
+    const r = game.rounds[s.ri];
+    const cfg = game.config;
+    const dice = Object.fromEntries(r.dice);
+    const counts = Object.fromEntries(r.dice_counts);
+    const bidsSoFar = s.kind === 'start' ? [] : s.kind === 'bid' ? r.bids.slice(0, s.bi + 1) : r.bids;
+    const last = bidsSoFar[bidsSoFar.length - 1];
+    const reveal = s.kind === 'call' || $('#showDice').checked;
+    const face = r.result.challenged_bid.face;
+    const isMatch = d => d === face || (cfg.ones_wild && d === 1 && face !== 1);
+    // whose turn is it next?
+    let turnName = null;
+    if (s.kind === 'start') turnName = r.seating[0];
+    else if (s.kind === 'bid') turnName = s.bi + 1 < r.bids.length ? r.bids[s.bi + 1].player : r.result.challenger;
+
+    $('#roundTitle').textContent = `Round ${r.round_number} of ${game.rounds.length}`;
+    $('#seats').innerHTML = game.players.map(name => {
+      const inRound = name in counts;
+      const myBids = bidsSoFar.filter(b => b.player === name);
+      const lastSaid = myBids.length ? myBids[myBids.length - 1].bid : null;
+      const said = s.kind === 'call' && r.result.challenger === name ? '“Liar!”' :
+                   lastSaid ? `${lastSaid.quantity} × ${lastSaid.face}s` : '';
+      const dhtml = inRound ? dice[name].map(d => reveal
+          ? dieHTML(d, s.kind === 'call' ? (d === face ? 'match' : isMatch(d) ? 'wild' : 'dim') : '')
+          : `<div class="die hidden">?</div>`).join('') : '';
+      const cls = ['seat', !inRound && 'out', name === turnName && 'turn', s.kind === 'call' && r.result.loser === name && 'lost'].filter(Boolean).join(' ');
+      return `<div class="${cls}">
+        <div class="nm"><span>${esc(name)}</span><span class="small">${inRound ? counts[name] + ' 🎲' : 'out'}</span></div>
+        <div class="st">${esc(strategyLabel(name))}</div>
+        <div class="dice">${dhtml}</div>
+        <div class="said">${esc(said)}</div>
+      </div>`;
+    }).join('');
+
+    if (s.kind === 'start') {
+      $('#bigbid').innerHTML = `<span class="muted" style="color:#cfe3d6">${r.dice_counts.reduce((a, [, n]) => a + n, 0)} dice on the table. ${esc(r.seating[0])} bids first.</span>`;
+      $('#verdict').innerHTML = '';
+    } else {
+      $('#bigbid').innerHTML = last ? `${esc(last.player)} bids <span class="q">${last.bid.quantity} × ${last.bid.face}s</span>` : '';
+      if (s.kind === 'call') {
+        const res = r.result;
+        $('#verdict').innerHTML = `<b>${esc(res.challenger)}</b> calls liar! There ${res.actual_count === 1 ? 'is' : 'are'} <b>${res.actual_count}</b> ${cfg.ones_wild && face !== 1 ? `(${face}s + wild 1s)` : ''} → bid was <b>${res.bid_was_true ? 'TRUE' : 'FALSE'}</b>. ${esc(res.loser)} loses a die${res.eliminated ? ' and is <b>out</b>' : ''}.` +
+          (s.ri === game.rounds.length - 1 ? `<div style="margin-top:8px;font-size:22px">🏆 <b>${esc(game.winner)}</b> wins!</div>` : '');
+      } else {
+        $('#verdict').innerHTML = turnName ? `<span style="color:#cfe3d6">${esc(turnName)} to act…</span>` : '';
+      }
+    }
+    $$('#log .rnd').forEach((el, i) => el.classList.toggle('cur', i === s.ri));
+    $('#log .rnd.cur')?.scrollIntoView({block: 'nearest'});
+    $('#prevStep').disabled = stepIdx === 0;
+    $('#nextStep').disabled = stepIdx === steps.length - 1;
+  }
+
+  function renderLog() {
+    $('#gameSummary').innerHTML = `${game.rounds.length} rounds · winner <b>${esc(game.winner)}</b> · knocked out in order: ${game.elimination_order.map(esc).join(' → ')}`;
+    $('#log').innerHTML = game.rounds.map((r, i) => {
+      const res = r.result;
+      return `<div class="rnd" data-ri="${i}">
+        <div class="row" style="justify-content:space-between"><b>Round ${r.round_number}</b>
+          <span class="pill ${res.bid_was_true ? 't' : 'f'}">${res.bid_was_true ? 'bid true' : 'bid false'}</span></div>
+        <div class="bids">${r.bids.map(b => `${esc(b.player)} ${b.bid.quantity}×${b.bid.face}`).join(' → ')} → ${esc(res.challenger)}: liar!</div>
+        <div class="small muted">${esc(res.loser)} loses a die${res.eliminated ? ' (out)' : ''}</div>
+      </div>`;
+    }).join('');
+    $$('#log .rnd').forEach(el => el.addEventListener('click', () => {
+      stopAuto();
+      stepIdx = steps.findIndex(s => s.ri === +el.dataset.ri);
+      renderStep();
+    }));
+  }
+
+  // ---------------------------------------------------------------- strategies tab
+  function renderStrategies() {
+    const stud = STRATS.filter(s => s.student);
+    $('#studentList').innerHTML = stud.length ? stud.map(s => `
+      <div class="card strat"><h3>🔒 ${esc(s.label)}</h3><p>Strategy kept secret for now. Add this player on the Tournament tab and see how it does.</p></div>`).join('')
+      : '<p class="muted">None yet.</p>';
+    $('#stratList').innerHTML = STRATS.filter(s => !s.student).map(s => s.secret ? `
+      <div class="card strat"><h3>🔒 ${esc(s.label)}</h3><p>Strategy kept secret for now. Add it on the Tournament tab and see how it does.</p></div>` : `
+      <div class="card strat">
+        <h3>${esc(s.label)}${s.uses_history ? '<span class="hist-badge">uses history</span>' : ''}</h3>
+        <p>${esc(s.description)}</p>
+        ${s.params.length ? `<ul>${s.params.map(p => `<li><code>${esc(p.name)}</code> (default ${fmt(p.default)}): ${esc(p.help)}</li>`).join('')}</ul>` : ''}
+      </div>`).join('');
+  }
+
+  // ---------------------------------------------------------------- boot
+  async function boot() {
+    try {
+      // The stdlib zip ships inside python_stdlib.js (hosting won't serve .zip);
+      // hand it to Pyodide from memory instead of a network fetch.
+      const realFetch = window.fetch;
+      if (window.PY_STDLIB_B64) {
+        const bin = atob(window.PY_STDLIB_B64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        window.fetch = (u, ...a) => String(u.url || u).includes('python_stdlib.zip')
+          ? Promise.resolve(new Response(bytes, {status: 200, headers: {'Content-Type': 'application/zip'}}))
+          : realFetch(u, ...a);
+      }
+      try {
+        py = await loadPyodide({indexURL: new URL('pyodide/', location.href).href});
+      } finally {
+        window.fetch = realFetch;
+        delete window.PY_STDLIB_B64;
+      }
+      setStatus('Loading game engine…');
+      const src = JSON.parse($('#pysrc').textContent);
+      py.FS.mkdirTree('/home/pyodide/liars_dice');
+      for (const [path, code] of Object.entries(src)) py.FS.writeFile('/home/pyodide/' + path, code);
+      py.runPython("import sys; sys.path.insert(0, '/home/pyodide')");
+      api = py.pyimport('liars_dice.web_api');
+      STRATS = JSON.parse(api.strategies());
+      STRATS.forEach(s => STRAT_BY_KEY[s.key] = s);
+      load(); renderStudentButtons(); renderRoster(); renderStrategies();
+      $('#runBtn').disabled = false; $('#watchBtn').disabled = false; $('#newGame').disabled = false;
+      setStatus('Ready', 'ready');
+    } catch (e) {
+      console.error(e);
+      setStatus('Failed to load', 'error');
+      $('#err').textContent = 'Could not start Python in this browser:\n' + e.message;
+    }
+  }
+  const watchdog = setTimeout(() => {
+    if (!api) {
+      setStatus('Still loading…', '');
+      $('#err').textContent = 'Python is taking longer than usual to load. On a slow connection the first load can take a minute; if it stays stuck, reload the page.';
+    }
+  }, 45000);
+  window.addEventListener('error', e => { if (!api) { setStatus('Failed to load', 'error'); $('#err').textContent = 'Could not start Python: ' + (e.message || e); } });
+  boot().finally(() => { if (api) { clearTimeout(watchdog); $('#err').textContent = ''; } });
+})();
+</script>
+</body>
+</html>
